@@ -1,5 +1,8 @@
 FROM node:alpine
 
+RUN --mount=type=secret,id=NEXT_PUBLIC_BASE_URL \
+   export NEXT_PUBLIC_BASE_URL=$(cat /run/secrets/NEXT_PUBLIC_BASE_URL)
+
 RUN mkdir -p /usr/src/app
 ENV PORT 3000
 ARG DATABASE_URL
