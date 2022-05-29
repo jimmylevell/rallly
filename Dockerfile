@@ -12,6 +12,10 @@ COPY ./docker/entrypoint.sh /docker/entrypoint.sh
 RUN chmod +x /docker/entrypoint.sh
 RUN dos2unix /docker/entrypoint.sh
 
+COPY ./docker/set_env_secrets.sh /docker/set_env_secrets.sh
+RUN chmod +x /docker/set_env_secrets.sh
+RUN dos2unix /docker/set_env_secrets.sh
+
 COPY package.json /usr/src/app
 COPY yarn.lock /usr/src/app
 COPY prisma/schema.prisma /usr/src/app
