@@ -1,0 +1,44 @@
+version: "3.3"
+services:
+  rallly:
+    image: ghcr.io/jimmylevell/rally/rally:latest
+    networks:
+      - levell
+      - traefik-public
+    environment:
+      - DATABASE_URL=DOCKER-SECRET->DATABASE_URL_RALLY
+      - NEXT_PUBLIC_BASE_URL=https://rally.app.levell.ch
+      - SECRET_PASSWORD=DOCKER-SECRET->RALLY_SESSION_SECRET
+      - SUPPORT_EMAIL=info@levell.ch
+    deploy: 
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      labels:
+      - traefik.enable=true # enable traefik
+      - traefik.docker.network=traefik-public # put it in the same network as traefik
+      - traefik.constraint-label=traefik-public # assign the same label as traefik so it can be discovered
+      - traefik.http.routers.levellrally.rule=Host(`rally.app.levell.ch`) # listen to port 80 for request to APP_DOMAIN (use together with the line below)
+      - traefik.http.routers.levellrally.entrypoints=http
+      - traefik.http.routers.levellrally.middlewares=https-redirect
+      - traefik.http.middlewares.levellrally.redirectscheme.scheme=https # redirect traffic to https
+      - traefik.http.middlewares.levellrally.redirectscheme.permanent=true # redirect traffic to https
+      - traefik.http.routers.levellrally-secured.rule=Host(`rally.app.levell.ch`) # listen to port 443 for request to APP_DOMAIN (use together with the line below)
+      - traefik.http.routers.levellrally-secured.entrypoints=https
+      - traefik.http.routers.levellrally-secured.tls.certresolver=le # use the Let's Encrypt certificate we set up earlier
+      - traefik.http.services.levellrally-secured.loadbalancer.server.port=3000 # ask Traefik to search for port service container
+
+networks:
+  traefik-public:
+    external: true
+  levell:
+    external: true
+
+secrets:
+  RALLY_SESSION_SECRET:
+    external: true  
+  DATABASE_URL_RALLY:
+    external: true
