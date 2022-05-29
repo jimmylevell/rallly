@@ -39,8 +39,8 @@ jobs:
           context: .
           load: true
           secrets: |
-            - "NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}"
-            - "DATABASE_URL_RALLY=${{ secrets.DATABASE_URL_RALLY }}"
+            "NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}"
+            "DATABASE_URL_RALLY=${{ secrets.DATABASE_URL_RALLY }}"
           tags: |
             ghcr.io/jimmylevell/rally/rally:latest
       -
