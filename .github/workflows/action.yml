@@ -39,7 +39,7 @@ jobs:
           context: .
           load: true
           secrets: |
-            - ${{ secrets.NEXT_PUBLIC_BASE_URL }}"
+            - "NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}"
           tags: |
             ghcr.io/jimmylevell/rally/rally:latest
       -
