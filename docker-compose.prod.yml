@@ -10,6 +10,9 @@ services:
       - NEXT_PUBLIC_BASE_URL=https://rally.app.levell.ch
       - SECRET_PASSWORD=DOCKER-SECRET->RALLY_SESSION_SECRET
       - SUPPORT_EMAIL=info@levell.ch
+    secrets:
+      - DATABASE_URL_RALLY
+      - RALLY_SESSION_SECRET
     deploy: 
       replicas: 1
       update_config:
