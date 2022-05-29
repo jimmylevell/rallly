@@ -1,6 +1,6 @@
 FROM node:alpine
 
-RUN apk refresh && apk add --no-cache dos2unix
+RUN apk update && apk add --no-cache dos2unix
 
 RUN mkdir -p /usr/src/app
 RUN mkdir -p /docker
