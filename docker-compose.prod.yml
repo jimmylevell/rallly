@@ -10,9 +10,16 @@ services:
       - NEXT_PUBLIC_BASE_URL=https://rally.app.levell.ch
       - SECRET_PASSWORD=DOCKER-SECRET->RALLY_SESSION_SECRET
       - SUPPORT_EMAIL=info@levell.ch
+      - SMTP_HOST=smtp.sendgrid.net
+      - SMTP_PORT=465
+      - SMTP_SECURE=true
+      - SMTP_USER=DOCKER-SECRET->SMTP_USER
+      - SMTP_PWD=DOCKER-SECRET->SMTP_PASSWORD
     secrets:
       - DATABASE_URL_RALLY
       - RALLY_SESSION_SECRET
+      - SMTP_USER
+      - SMTP_PASSWORD
     deploy: 
       replicas: 1
       update_config:
@@ -44,4 +51,8 @@ secrets:
   RALLY_SESSION_SECRET:
     external: true  
   DATABASE_URL_RALLY:
+    external: true
+  SMTP_USER:
+    external: true
+  SMTP_PASSWORD:
     external: true
