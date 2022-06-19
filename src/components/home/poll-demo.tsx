@@ -2,12 +2,11 @@ import { format } from "date-fns";
 import { useTranslation } from "next-i18next";
 import * as React from "react";
 
-import DateCard from "../date-card";
+import { ParticipantRowView } from "../poll/desktop-poll/participant-row";
 import { ScoreSummary } from "../poll/score-summary";
-import UserAvatar from "../poll/user-avatar";
-import VoteIcon from "../poll/vote-icon";
 
 const sidebarWidth = 180;
+const columnWidth = 100;
 const participants = [
   {
     name: "Reed",
@@ -21,7 +20,7 @@ const participants = [
   },
   {
     name: "Johnny",
-    color: "bg-indigo-400",
+    color: "bg-primary-400",
     votes: [2, 3],
   },
   {
@@ -38,10 +37,10 @@ const PollDemo: React.VoidFunctionComponent = () => {
 
   return (
     <div
-      className="rounded-lg border bg-white shadow-md"
+      className="rounded-lg bg-white py-1 shadow-huge"
       style={{ width: 600 }}
     >
-      <div className="flex border-b shadow-sm">
+      <div className="flex">
         <div
           className="flex shrink-0 items-center py-2 pl-4 pr-2 font-medium"
           style={{ width: sidebarWidth }}
@@ -62,50 +61,37 @@ const PollDemo: React.VoidFunctionComponent = () => {
             <div
               key={i}
               className="shrink-0 space-y-3 py-2 pt-3 text-center transition-colors"
-              style={{ width: 100 }}
+              style={{ width: columnWidth }}
             >
-              <DateCard
-                day={format(d, "dd")}
-                dow={format(d, "E")}
-                month={format(d, "MMM")}
-              />
               <div>
-                <ScoreSummary yesScore={score} compact={true} />
+                <div className="font-semibold leading-9">
+                  <div className="text-sm uppercase text-slate-400">
+                    {format(d, "E")}
+                  </div>
+                  <div className="text-2xl">{format(d, "dd")}</div>
+                  <div className="text-xs font-medium uppercase text-slate-400/75">
+                    {format(d, "MMM")}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <ScoreSummary yesScore={score} />
               </div>
             </div>
           );
         })}
       </div>
       {participants.map((participant, i) => (
-        <div className="flex h-14" key={i}>
-          <div
-            className="flex shrink-0 items-center px-4"
-            style={{ width: sidebarWidth }}
-          >
-            <UserAvatar
-              color={participant.color}
-              name={participant.name}
-              showName={true}
-            />
-          </div>
-          <div className="flex">
-            {options.map((_, i) => {
-              return (
-                <div
-                  key={i}
-                  className="flex shrink-0 items-center justify-center"
-                  style={{ width: 100 }}
-                >
-                  {participant.votes.some((vote) => vote === i) ? (
-                    <VoteIcon type="yes" />
-                  ) : (
-                    <VoteIcon type="no" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <ParticipantRowView
+          key={i}
+          color={participant.color}
+          sidebarWidth={sidebarWidth}
+          columnWidth={columnWidth}
+          name={participant.name}
+          votes={options.map((_, i) => {
+            return participant.votes.some((vote) => vote === i) ? "yes" : "no";
+          })}
+        />
       ))}
     </div>
   );

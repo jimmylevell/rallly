@@ -21,8 +21,7 @@ import NameInput from "../name-input";
 import { useParticipants } from "../participants-provider";
 import { isUnclaimed, useSession } from "../session";
 import TimeZonePicker from "../time-zone-picker";
-import PollOptions from "./mobile-poll/poll-options";
-import TimeSlotOptions from "./mobile-poll/time-slot-options";
+import GroupedOptions from "./mobile-poll/grouped-options";
 import {
   normalizeVotes,
   useAddParticipantMutation,
@@ -139,7 +138,7 @@ const MobilePoll: React.VoidFunctionComponent = () => {
           }
         })}
       >
-        <div className="sticky top-12 z-30 flex flex-col space-y-2 border-b bg-gray-50 p-3">
+        <div className="sticky top-[47px] z-30 flex flex-col space-y-2 border-b bg-gray-50 p-3">
           <div className="flex space-x-3">
             <Listbox
               value={selectedParticipantId}
@@ -200,54 +199,6 @@ const MobilePoll: React.VoidFunctionComponent = () => {
                 </Listbox.Options>
               </div>
             </Listbox>
-            {!poll.closed && !isEditing ? (
-              selectedParticipant &&
-              (role === "admin" ||
-                session.ownsObject(selectedParticipant) ||
-                isUnclaimed(selectedParticipant)) ? (
-                <div className="flex space-x-3">
-                  <Button
-                    icon={<Pencil />}
-                    onClick={() => {
-                      setIsEditing(true);
-                      reset({
-                        name: selectedParticipant.name,
-                        votes: optionIds.map((optionId) => ({
-                          optionId,
-                          type: getVote(selectedParticipant.id, optionId),
-                        })),
-                      });
-                    }}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    icon={<Trash />}
-                    data-testid="delete-participant-button"
-                    type="danger"
-                    onClick={() => {
-                      if (selectedParticipant) {
-                        confirmDeleteParticipant(selectedParticipant.id);
-                      }
-                    }}
-                  />
-                </div>
-              ) : (
-                <Button
-                  type="primary"
-                  icon={<PlusCircle />}
-                  onClick={() => {
-                    reset({
-                      name: "",
-                      votes: [],
-                    });
-                    setIsEditing(true);
-                  }}
-                >
-                  New
-                </Button>
-              )
-            ) : null}
             {isEditing ? (
               <Button
                 onClick={() => {
@@ -257,7 +208,70 @@ const MobilePoll: React.VoidFunctionComponent = () => {
               >
                 Cancel
               </Button>
-            ) : null}
+            ) : selectedParticipant ? (
+              <div className="flex space-x-3">
+                <Button
+                  icon={<Pencil />}
+                  disabled={
+                    poll.closed ||
+                    // if user is  participant (not admin)
+                    (role === "participant" &&
+                      // and does not own this participant
+                      !session.ownsObject(selectedParticipant) &&
+                      // and the participant has been claimed by a different user
+                      !isUnclaimed(selectedParticipant))
+                    // not allowed to edit
+                  }
+                  onClick={() => {
+                    setIsEditing(true);
+                    reset({
+                      name: selectedParticipant.name,
+                      votes: optionIds.map((optionId) => ({
+                        optionId,
+                        type: getVote(selectedParticipant.id, optionId),
+                      })),
+                    });
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  icon={<Trash />}
+                  disabled={
+                    poll.closed ||
+                    // if user is  participant (not admin)
+                    (role === "participant" &&
+                      // and does not own this participant
+                      !session.ownsObject(selectedParticipant) &&
+                      // or the participant has been claimed by a different user
+                      !isUnclaimed(selectedParticipant))
+                    // not allowed to edit
+                  }
+                  data-testid="delete-participant-button"
+                  type="danger"
+                  onClick={() => {
+                    if (selectedParticipant) {
+                      confirmDeleteParticipant(selectedParticipant.id);
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              <Button
+                type="primary"
+                icon={<PlusCircle />}
+                disabled={poll.closed}
+                onClick={() => {
+                  reset({
+                    name: "",
+                    votes: [],
+                  });
+                  setIsEditing(true);
+                }}
+              >
+                New
+              </Button>
+            )}
           </div>
           {timeZone ? (
             <TimeZonePicker
@@ -266,28 +280,20 @@ const MobilePoll: React.VoidFunctionComponent = () => {
             />
           ) : null}
         </div>
-        {(() => {
-          switch (pollContext.pollType) {
-            // we pass poll options as props since we are
-            // discriminating on poll type here
-            case "date":
-              return (
-                <PollOptions
-                  selectedParticipantId={selectedParticipantId}
-                  options={pollContext.options}
-                  editable={isEditing}
-                />
-              );
-            case "timeSlot":
-              return (
-                <TimeSlotOptions
-                  selectedParticipantId={selectedParticipantId}
-                  options={pollContext.options}
-                  editable={isEditing}
-                />
-              );
+        <GroupedOptions
+          selectedParticipantId={selectedParticipantId}
+          options={pollContext.options}
+          editable={isEditing}
+          groupClassName={
+            pollContext.pollType === "timeSlot" ? "top-[151px]" : "top-[108px]"
           }
-        })()}
+          group={(option) => {
+            if (option.type === "timeSlot") {
+              return `${option.dow} ${option.day} ${option.month}`;
+            }
+            return `${option.month} ${option.year}`;
+          }}
+        />
         <AnimatePresence>
           {shouldShowSaveButton && isEditing ? (
             <motion.button

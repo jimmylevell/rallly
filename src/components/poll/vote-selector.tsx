@@ -31,7 +31,7 @@ export const VoteSelector = React.forwardRef<
       onFocus={onFocus}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
-      className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg border bg-white shadow-sm transition focus-visible:border-0 focus-visible:ring-2 focus-visible:ring-indigo-500 active:scale-95"
+      className="focus-visible:ring-primary-500 relative inline-flex h-9 w-9 items-center justify-center rounded-lg border bg-white shadow-sm transition focus-visible:border-0 focus-visible:ring-2 active:scale-95"
       onClick={() => {
         onChange?.(value ? getNext(value) : orderedVoteTypes[0]);
       }}
@@ -40,10 +40,10 @@ export const VoteSelector = React.forwardRef<
       <AnimatePresence initial={false}>
         <motion.span
           className="absolute flex items-center justify-center"
-          transition={{ duration: 0.1 }}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0 }}
+          transition={{ duration: 0.15 }}
+          initial={{ opacity: 0, y: -15 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 15 }}
           key={value}
         >
           <VoteIcon type={value} />
