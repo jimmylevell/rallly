@@ -1,4 +1,4 @@
-FROM node:alpine
+FROM node:alpine as build
 
 RUN apk update && apk add --no-cache dos2unix
 
@@ -26,9 +26,9 @@ COPY . /usr/src/app
 
 RUN --mount=type=secret,id=NEXT_PUBLIC_BASE_URL \
   --mount=type=secret,id=DATABASE_URL_RALLY \
-   export NEXT_PUBLIC_BASE_URL=$(cat /run/secrets/NEXT_PUBLIC_BASE_URL) && \
-   export DATABASE_URL=$(cat /run/secrets/DATABASE_URL_RALLY) && \
-   yarn build
+  export NEXT_PUBLIC_BASE_URL=$(cat /run/secrets/NEXT_PUBLIC_BASE_URL) && \
+  export DATABASE_URL=$(cat /run/secrets/DATABASE_URL_RALLY) && \
+  yarn build
 
 EXPOSE 3000
 
