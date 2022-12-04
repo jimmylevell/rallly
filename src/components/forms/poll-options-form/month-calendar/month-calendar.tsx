@@ -1,17 +1,14 @@
 import clsx from "clsx";
-import differenceInMinutes from "date-fns/differenceInMinutes";
-import { addMinutes, setHours } from "date-fns/esm";
-import isSameDay from "date-fns/isSameDay";
+import { useTranslation } from "next-i18next";
 import { usePlausible } from "next-plausible";
 import * as React from "react";
-
-import { usePreferences } from "@/components/preferences/use-preferences";
 
 import {
   expectTimeOption,
   getDateProps,
   removeAllOptionsForDay,
 } from "../../../../utils/date-time-utils";
+import { useDayjs } from "../../../../utils/dayjs";
 import { Button } from "../../../button";
 import CompactButton from "../../../compact-button";
 import DateCard from "../../../date-card";
@@ -39,6 +36,8 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
   duration,
   onChangeDuration,
 }) => {
+  const { dayjs, weekStartsOn } = useDayjs();
+  const { t } = useTranslation("app");
   const isTimedEvent = options.some((option) => option.type === "timeSlot");
 
   const plausible = usePlausible();
@@ -76,8 +75,6 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
     );
   }, [optionsByDay]);
 
-  const { weekStartsOn } = usePreferences();
-
   const datepicker = useHeadlessDatePicker({
     selection: datepickerSelection,
     onNavigationChange: onNavigate,
@@ -93,14 +90,14 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
             <div className="mb-3 flex items-center justify-center space-x-4">
               <Button
                 icon={<ChevronLeft />}
-                title="Previous month"
+                title={t("previousMonth")}
                 onClick={datepicker.prev}
               />
               <div className="grow text-center text-lg font-medium">
                 {datepicker.label}
               </div>
               <Button
-                title="Next month"
+                title={t("nextMonth")}
                 icon={<ChevronRight />}
                 onClick={datepicker.next}
               />
@@ -126,12 +123,14 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
                     onClick={() => {
                       if (
                         datepicker.selection.some((selectedDate) =>
-                          isSameDay(selectedDate, day.date),
+                          dayjs(selectedDate).isSame(day.date, "day"),
                         )
                       ) {
                         onChange(removeAllOptionsForDay(options, day.date));
                       } else {
-                        const selectedDate = setHours(day.date, 12);
+                        const selectedDate = dayjs(day.date)
+                          .set("hour", 12)
+                          .toDate();
                         const newOption: DateTimeOption = !isTimedEvent
                           ? {
                               type: "date",
@@ -141,7 +140,9 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
                               type: "timeSlot",
                               start: formatDateWithoutTz(selectedDate),
                               end: formatDateWithoutTz(
-                                addMinutes(selectedDate, duration),
+                                dayjs(selectedDate)
+                                  .add(duration, "minutes")
+                                  .toDate(),
                               ),
                             };
 
@@ -175,7 +176,7 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
               })}
             </div>
             <Button className="mt-3" onClick={datepicker.today}>
-              Today
+              {t("today")}
             </Button>
           </div>
         </div>
@@ -188,9 +189,9 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
         >
           <div className="flex items-center space-x-3 p-4">
             <div className="grow">
-              <div className="font-medium">Specify times</div>
+              <div className="font-medium">{t("specifyTimes")}</div>
               <div className="text-sm text-slate-400">
-                Include start and end times for each option
+                {t("specifyTimesDescription")}
               </div>
             </div>
             <div>
@@ -208,7 +209,9 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
                           );
                         }
                         const startDate = new Date(`${option.date}T12:00:00`);
-                        const endDate = addMinutes(startDate, duration);
+                        const endDate = dayjs(startDate)
+                          .add(duration, "minutes")
+                          .toDate();
                         return {
                           type: "timeSlot",
                           start: formatDateWithoutTz(startDate),
@@ -260,26 +263,37 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
                               <TimePicker
                                 value={startDate}
                                 onChange={(newStart) => {
-                                  const newEnd = addMinutes(newStart, duration);
+                                  let newEnd = dayjs(newStart).add(
+                                    duration,
+                                    "minutes",
+                                  );
+
+                                  if (!newEnd.isSame(newStart, "day")) {
+                                    newEnd = newEnd
+                                      .set("hour", 23)
+                                      .set("minute", 45);
+                                  }
                                   // replace enter with updated start time
                                   onChange([
                                     ...options.slice(0, index),
                                     {
                                       ...option,
                                       start: formatDateWithoutTz(newStart),
-                                      end: formatDateWithoutTz(newEnd),
+                                      end: formatDateWithoutTz(newEnd.toDate()),
                                     },
                                     ...options.slice(index + 1),
                                   ]);
                                   onNavigate(newStart);
                                   onChangeDuration(
-                                    differenceInMinutes(newEnd, newStart),
+                                    newEnd.diff(newStart, "minutes"),
                                   );
                                 }}
                               />
                               <TimePicker
                                 value={new Date(option.end)}
-                                startFrom={addMinutes(startDate, 15)}
+                                startFrom={dayjs(startDate)
+                                  .add(15, "minutes")
+                                  .toDate()}
                                 onChange={(newEnd) => {
                                   onChange([
                                     ...options.slice(0, index),
@@ -291,7 +305,7 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
                                   ]);
                                   onNavigate(newEnd);
                                   onChangeDuration(
-                                    differenceInMinutes(newEnd, startDate),
+                                    dayjs(newEnd).diff(startDate, "minutes"),
                                   );
                                 }}
                               />
@@ -322,13 +336,15 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
                                   type: "timeSlot",
                                   start: startTime,
                                   end: formatDateWithoutTz(
-                                    addMinutes(new Date(startTime), duration),
+                                    dayjs(new Date(startTime))
+                                      .add(duration, "minutes")
+                                      .toDate(),
                                   ),
                                 },
                               ]);
                             }}
                           >
-                            Add time option
+                            {t("addTimeOption")}
                           </Button>
                           <Dropdown
                             trigger={<CompactButton icon={DotsHorizontal} />}
@@ -337,7 +353,7 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
                             <DropdownItem
                               icon={Magic}
                               disabled={datepicker.selection.length < 2}
-                              label="Apply to all dates"
+                              label={t("applyToAllDates")}
                               onClick={() => {
                                 plausible("Applied options to all dates");
                                 const times = optionsForDay.map(
@@ -374,7 +390,7 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
                               }}
                             />
                             <DropdownItem
-                              label="Delete date"
+                              label={t("deleteDate")}
                               icon={Trash}
                               onClick={() => {
                                 onChange(
@@ -421,7 +437,7 @@ const MonthCalendar: React.VoidFunctionComponent<DateTimePickerProps> = ({
             <div className="flex h-full items-center justify-center py-12">
               <div className="text-center font-medium text-gray-400">
                 <Calendar className="mb-2 inline-block h-12 w-12" />
-                <div>No dates selected</div>
+                <div>{t("noDatesSelected")}</div>
               </div>
             </div>
           )}

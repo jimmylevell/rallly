@@ -9,21 +9,21 @@ test("should be able to vote and comment on a poll", async ({ page }) => {
 
   await page.goto("/demo");
 
-  await expect(page.locator('text="Lunch Meeting Demo"')).toBeVisible();
+  await expect(page.locator('text="Lunch Meeting"')).toBeVisible();
 
-  await page.type('[placeholder="Your name"]', "Test user");
+  await page.type('[placeholder="Your name…"]', "Test user");
   // There is a hidden checkbox (nth=0) that exists so that the behaviour of the form is consistent even
   // when we only have a single option/checkbox.
   await page.locator("data-testid=vote-selector >> nth=0").click();
   await page.locator("data-testid=vote-selector >> nth=2").click();
-  await page.click('[data-testid="submitNewParticipant"]');
+  await page.click("text='Save'");
   await expect(page.locator("text='Test user'")).toBeVisible();
   await expect(page.locator("text=Guest")).toBeVisible();
   await expect(
-    page.locator("data-testid=participant-row >> nth=0").locator("text=You"),
+    page.locator("data-testid=participant-row >> nth=4").locator("text=You"),
   ).toBeVisible();
   await page.type(
-    "[placeholder='Thanks for the invite!']",
+    "[placeholder='Leave a comment on this poll (visible to everyone)']",
     "This is a comment!",
   );
   await page.type('[placeholder="Your name…"]', "Test user");

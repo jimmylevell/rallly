@@ -1,10 +1,10 @@
 import clsx from "clsx";
+import { useTranslation } from "next-i18next";
 import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 
-import CompactButton from "@/components/compact-button";
-import Check from "@/components/icons/check.svg";
-import X from "@/components/icons/x.svg";
+import ArrowLeft from "@/components/icons/arrow-left.svg";
+import ArrowRight from "@/components/icons/arrow-right.svg";
 
 import { requiredString } from "../../../utils/form-validation";
 import { Button } from "../../button";
@@ -27,12 +27,15 @@ const ParticipantRowForm: React.ForwardRefRenderFunction<
   HTMLFormElement,
   ParticipantRowFormProps
 > = ({ defaultValues, onSubmit, className, onCancel }, ref) => {
+  const { t } = useTranslation("app");
   const {
     columnWidth,
     scrollPosition,
     sidebarWidth,
     numberOfColumns,
     goToNextPage,
+    goToPreviousPage,
+    maxScrollPosition,
     setScrollPosition,
   } = usePollContext();
 
@@ -40,7 +43,7 @@ const ParticipantRowForm: React.ForwardRefRenderFunction<
   const {
     handleSubmit,
     control,
-    formState: { errors, submitCount, isSubmitting },
+    formState: { errors, submitCount },
     reset,
   } = useForm({
     defaultValues: {
@@ -66,6 +69,7 @@ const ParticipantRowForm: React.ForwardRefRenderFunction<
 
   return (
     <form
+      id="participant-row-form"
       ref={ref}
       onSubmit={handleSubmit(async ({ name, votes }) => {
         await onSubmit({
@@ -85,11 +89,10 @@ const ParticipantRowForm: React.ForwardRefRenderFunction<
           render={({ field }) => (
             <div className="w-full">
               <NameInput
-                autoFocus={true}
                 className={clsx("w-full", {
-                  "input-error animate-wiggle": errors.name && submitCount > 0,
+                  "input-error": errors.name && submitCount > 0,
                 })}
-                placeholder="Your name"
+                placeholder={t("yourName")}
                 {...field}
                 onKeyDown={(e) => {
                   if (e.code === "Tab" && scrollPosition > 0) {
@@ -124,7 +127,7 @@ const ParticipantRowForm: React.ForwardRefRenderFunction<
                 return (
                   <div
                     key={optionId}
-                    className="flex shrink-0 items-center justify-center"
+                    className="flex shrink-0 items-center justify-center px-2"
                     style={{ width: columnWidth }}
                   >
                     <VoteSelector
@@ -158,19 +161,30 @@ const ParticipantRowForm: React.ForwardRefRenderFunction<
           );
         }}
       />
-
-      <div className="flex items-center space-x-2 px-2 transition-all">
-        <Button
-          htmlType="submit"
-          icon={<Check />}
-          type="primary"
-          loading={isSubmitting}
-          data-testid="submitNewParticipant"
-        >
-          Save
-        </Button>
-        <CompactButton onClick={onCancel} icon={X} />
-      </div>
+      {maxScrollPosition > 0 ? (
+        <div className="flex items-center space-x-2 px-2 transition-all">
+          <Button
+            disabled={scrollPosition === 0}
+            className="text-xs"
+            rounded={true}
+            onClick={() => {
+              goToPreviousPage();
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            disabled={scrollPosition >= maxScrollPosition}
+            className="text-xs"
+            rounded={true}
+            onClick={() => {
+              goToNextPage();
+            }}
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null}
     </form>
   );
 };

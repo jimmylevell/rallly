@@ -1,11 +1,12 @@
-import { format } from "date-fns";
 import { useTranslation } from "next-i18next";
 
 import { usePoll } from "@/components/poll-context";
 
+import { useDayjs } from "../../../utils/dayjs";
 import { useParticipants } from "../../participants-provider";
 
 export const useCsvExporter = () => {
+  const { dayjs } = useDayjs();
   const { poll, options } = usePoll();
   const { t } = useTranslation("app");
   const { participants } = useParticipants();
@@ -50,10 +51,9 @@ export const useCsvExporter = () => {
       link.setAttribute("href", encodedCsv);
       link.setAttribute(
         "download",
-        `${poll.title.replace(/\s/g, "_")}-${format(
-          Date.now(),
-          "yyyyMMddhhmm",
-        )}`,
+        `${poll.title.replace(/\s/g, "_")}-${dayjs().format(
+          "YYYYMMDDHHmm",
+        )}.csv`,
       );
       document.body.appendChild(link);
       link.click();

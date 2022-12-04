@@ -26,9 +26,13 @@ export const useAddParticipantMutation = () => {
       queryClient.setQueryData(
         ["polls.participants.list", { pollId: participant.pollId }],
         (existingParticipants = []) => {
-          return [participant, ...existingParticipants];
+          return [...existingParticipants, participant];
         },
       );
+      queryClient.invalidateQueries([
+        "polls.participants.list",
+        { pollId: participant.pollId },
+      ]);
       session.refresh();
     },
   });
@@ -79,12 +83,12 @@ export const useDeleteParticipantMutation = () => {
 };
 
 export const useUpdatePollMutation = () => {
-  const { poll } = usePoll();
+  const { urlId, admin } = usePoll();
   const plausible = usePlausible();
   const queryClient = trpc.useContext();
   return trpc.useMutation(["polls.update"], {
     onSuccess: (data) => {
-      queryClient.setQueryData(["polls.get", { urlId: poll.urlId }], data);
+      queryClient.setQueryData(["polls.get", { urlId, admin }], data);
       plausible("Updated poll");
     },
   });

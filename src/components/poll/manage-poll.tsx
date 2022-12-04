@@ -27,7 +27,8 @@ const ManagePoll: React.VoidFunctionComponent<{
   placement?: Placement;
 }> = ({ placement }) => {
   const { t } = useTranslation("app");
-  const { poll, getParticipantsWhoVotedForOption, setDeleted } = usePoll();
+  const { poll, getParticipantsWhoVotedForOption, setDeleted, urlId } =
+    usePoll();
 
   const { exportToCsv } = useCsvExporter();
 
@@ -54,14 +55,13 @@ const ManagePoll: React.VoidFunctionComponent<{
     openChangeOptionsModal,
     closeChangeOptionsModal,
   ] = useModal({
-    overlayClosable: true,
-    okText: "Save",
+    okText: t("save"),
     okButtonProps: {
       form: "pollOptions",
       htmlType: "submit",
       loading: isUpdating,
     },
-    cancelText: "Cancel",
+    cancelText: t("cancel"),
     content: (
       <React.Suspense fallback={null}>
         <PollOptionsForm
@@ -98,7 +98,7 @@ const ManagePoll: React.VoidFunctionComponent<{
             const onOk = () => {
               updatePollMutation(
                 {
-                  urlId: poll.urlId,
+                  urlId: urlId,
                   timeZone: data.timeZone,
                   optionsToDelete: optionsToDelete.map(({ id }) => id),
                   optionsToAdd,
@@ -116,7 +116,7 @@ const ManagePoll: React.VoidFunctionComponent<{
 
             if (optionsToDeleteThatHaveVotes.length > 0) {
               modalContext.render({
-                title: "Are you sure?",
+                title: t("areYouSure"),
                 description: (
                   <Trans
                     t={t}
@@ -128,8 +128,8 @@ const ManagePoll: React.VoidFunctionComponent<{
                 okButtonProps: {
                   type: "danger",
                 },
-                okText: "Delete",
-                cancelText: "Cancel",
+                okText: t("delete"),
+                cancelText: t("cancel"),
               });
             } else {
               onOk();
@@ -145,14 +145,13 @@ const ManagePoll: React.VoidFunctionComponent<{
     openChangePollDetailsModa,
     closePollDetailsModal,
   ] = useModal({
-    overlayClosable: true,
-    okText: "Save changes",
+    okText: t("save"),
     okButtonProps: {
       form: "updateDetails",
       loading: isUpdating,
       htmlType: "submit",
     },
-    cancelText: "Cancel",
+    cancelText: t("cancel"),
     content: (
       <PollDetailsForm
         name="updateDetails"
@@ -165,7 +164,7 @@ const ManagePoll: React.VoidFunctionComponent<{
         onSubmit={(data) => {
           //submit
           updatePollMutation(
-            { urlId: poll.urlId, ...data },
+            { urlId, ...data },
             { onSuccess: closePollDetailsModal },
           );
         }}
@@ -178,52 +177,54 @@ const ManagePoll: React.VoidFunctionComponent<{
       {changePollDetailsModalContextHolder}
       <Dropdown
         placement={placement}
-        trigger={<Button icon={<Cog />}>Manage</Button>}
+        trigger={<Button icon={<Cog />}>{t("manage")}</Button>}
       >
         <DropdownItem
           icon={Pencil}
-          label="Edit details"
+          label={t("editDetails")}
           onClick={openChangePollDetailsModa}
         />
         <DropdownItem
           icon={Table}
-          label="Edit options"
+          label={t("editOptions")}
           onClick={handleChangeOptions}
         />
-        <DropdownItem icon={Save} label="Export to CSV" onClick={exportToCsv} />
+        <DropdownItem
+          icon={Save}
+          label={t("exportToCsv")}
+          onClick={exportToCsv}
+        />
         {poll.closed ? (
           <DropdownItem
             icon={LockOpen}
-            label="Unlock poll"
-            onClick={() =>
-              updatePollMutation({ urlId: poll.urlId, closed: false })
-            }
+            label={t("unlockPoll")}
+            onClick={() => updatePollMutation({ urlId, closed: false })}
           />
         ) : (
           <DropdownItem
             icon={LockClosed}
-            label="Lock poll"
-            onClick={() =>
-              updatePollMutation({ urlId: poll.urlId, closed: true })
-            }
+            label={t("lockPoll")}
+            onClick={() => updatePollMutation({ urlId, closed: true })}
           />
         )}
         <DropdownItem
           icon={Trash}
-          label="Delete poll"
+          label={t("deletePoll")}
           onClick={() => {
             modalContext.render({
               overlayClosable: true,
-              content: ({ close }) => (
-                <DeletePollForm
-                  onConfirm={async () => {
-                    close();
-                    setDeleted(true);
-                  }}
-                  onCancel={close}
-                  urlId={poll.urlId}
-                />
-              ),
+              content: function Content({ close }) {
+                return (
+                  <DeletePollForm
+                    onConfirm={async () => {
+                      close();
+                      setDeleted(true);
+                    }}
+                    onCancel={close}
+                    urlId={urlId}
+                  />
+                );
+              },
               footer: null,
             });
           }}

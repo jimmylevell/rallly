@@ -7,12 +7,11 @@ import {
 } from "@floating-ui/react-dom-interactions";
 import { Listbox } from "@headlessui/react";
 import clsx from "clsx";
-import { addMinutes, format, isSameDay, setHours, setMinutes } from "date-fns";
 import * as React from "react";
 
-import { usePreferences } from "@/components/preferences/use-preferences";
 import { stopPropagation } from "@/utils/stop-propagation";
 
+import { useDayjs } from "../../../../utils/dayjs";
 import ChevronDown from "../../../icons/chevron-down.svg";
 import { styleMenuItem } from "../../../menu-styles";
 
@@ -27,9 +26,9 @@ const TimePicker: React.VoidFunctionComponent<TimePickerProps> = ({
   value,
   onChange,
   className,
-  startFrom = setMinutes(setHours(value, 0), 0),
+  startFrom,
 }) => {
-  const { locale } = usePreferences();
+  const { dayjs } = useDayjs();
   const { reference, floating, x, y, strategy, refs } = useFloating({
     strategy: "fixed",
     middleware: [
@@ -47,28 +46,33 @@ const TimePicker: React.VoidFunctionComponent<TimePickerProps> = ({
     ],
   });
 
-  const options: React.ReactNode[] = [];
-  for (let i = 0; i < 96; i++) {
-    const optionValue = addMinutes(startFrom, i * 15);
-    if (!isSameDay(value, optionValue)) {
-      // we only support event that start and end on the same day for now
-      // because react-big-calendar does not support events that span days
-      break;
+  const renderOptions = () => {
+    const startFromDate = startFrom
+      ? dayjs(startFrom)
+      : dayjs(value).startOf("day");
+
+    const options: React.ReactNode[] = [];
+    const startMinute =
+      startFromDate.get("hour") * 60 + startFromDate.get("minute");
+    const intervals = Math.floor((1440 - startMinute) / 15);
+    for (let i = 0; i < intervals; i++) {
+      const optionValue = startFromDate.add(i * 15, "minutes");
+      options.push(
+        <Listbox.Option
+          key={i}
+          className={styleMenuItem}
+          value={optionValue.format("YYYY-MM-DDTHH:mm:ss")}
+        >
+          {optionValue.format("LT")}
+        </Listbox.Option>,
+      );
     }
-    options.push(
-      <Listbox.Option
-        key={i}
-        className={styleMenuItem}
-        value={optionValue.toISOString()}
-      >
-        {format(optionValue, "p", { locale })}
-      </Listbox.Option>,
-    );
-  }
+    return options;
+  };
 
   return (
     <Listbox
-      value={value.toISOString()}
+      value={dayjs(value).format("YYYY-MM-DDTHH:mm:ss")}
       onChange={(newValue) => {
         onChange?.(new Date(newValue));
       }}
@@ -77,9 +81,7 @@ const TimePicker: React.VoidFunctionComponent<TimePickerProps> = ({
         <>
           <div ref={reference} className={clsx("relative", className)}>
             <Listbox.Button className="btn-default text-left">
-              <span className="grow truncate">
-                {format(value, "p", { locale })}
-              </span>
+              <span className="grow truncate">{dayjs(value).format("LT")}</span>
               <span className="pointer-events-none ml-2 flex">
                 <ChevronDown className="h-5 w-5" />
               </span>
@@ -97,7 +99,7 @@ const TimePicker: React.VoidFunctionComponent<TimePickerProps> = ({
                 className="z-50 max-h-52 overflow-auto rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                 onMouseDown={stopPropagation}
               >
-                {options}
+                {renderOptions()}
               </Listbox.Options>
             ) : null}
           </FloatingPortal>

@@ -1,10 +1,11 @@
 import clsx from "clsx";
-import { formatRelative } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslation } from "next-i18next";
 import { usePlausible } from "next-plausible";
 import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
 
+import { useDayjs } from "../../utils/dayjs";
 import { requiredString } from "../../utils/form-validation";
 import { trpc } from "../../utils/trpc";
 import { Button } from "../button";
@@ -16,7 +17,6 @@ import NameInput from "../name-input";
 import TruncatedLinkify from "../poll/truncated-linkify";
 import UserAvatar from "../poll/user-avatar";
 import { usePoll } from "../poll-context";
-import { usePreferences } from "../preferences/use-preferences";
 import { isUnclaimed, useSession } from "../session";
 
 interface CommentForm {
@@ -25,11 +25,12 @@ interface CommentForm {
 }
 
 const Discussion: React.VoidFunctionComponent = () => {
-  const { locale } = usePreferences();
+  const { dayjs } = useDayjs();
   const queryClient = trpc.useContext();
-  const {
-    poll: { pollId },
-  } = usePoll();
+  const { t } = useTranslation("app");
+  const { poll } = usePoll();
+
+  const pollId = poll.id;
 
   const { data: comments } = trpc.useQuery(
     ["polls.comments.list", { pollId }],
@@ -52,8 +53,6 @@ const Discussion: React.VoidFunctionComponent = () => {
       plausible("Created comment");
     },
   });
-
-  const { poll } = usePoll();
 
   const deleteComment = trpc.useMutation("polls.comments.delete", {
     onMutate: ({ commentId }) => {
@@ -86,7 +85,7 @@ const Discussion: React.VoidFunctionComponent = () => {
   return (
     <div className="overflow-hidden border-t border-b shadow-sm md:rounded-lg md:border">
       <div className="border-b bg-white px-4 py-2">
-        <div className="font-medium">Comments</div>
+        <div className="font-medium">{t("comments")}</div>
       </div>
       <div
         className={clsx({
@@ -96,9 +95,7 @@ const Discussion: React.VoidFunctionComponent = () => {
         <AnimatePresence initial={false}>
           {comments.map((comment) => {
             const canDelete =
-              poll.role === "admin" ||
-              session.ownsObject(comment) ||
-              isUnclaimed(comment);
+              poll.admin || session.ownsObject(comment) || isUnclaimed(comment);
 
             return (
               <motion.div
@@ -126,32 +123,25 @@ const Discussion: React.VoidFunctionComponent = () => {
                     <div className="mb-1">
                       <span className="mr-1 text-slate-400">&bull;</span>
                       <span className="text-sm text-slate-500">
-                        {formatRelative(
-                          new Date(comment.createdAt),
-                          Date.now(),
-                          {
-                            locale,
-                          },
-                        )}
+                        {dayjs(new Date(comment.createdAt)).fromNow()}
                       </span>
                     </div>
-                    {canDelete ? (
-                      <Dropdown
-                        placement="bottom-start"
-                        trigger={<CompactButton icon={DotsHorizontal} />}
-                      >
-                        <DropdownItem
-                          icon={Trash}
-                          label="Delete comment"
-                          onClick={() => {
-                            deleteComment.mutate({
-                              commentId: comment.id,
-                              pollId,
-                            });
-                          }}
-                        />
-                      </Dropdown>
-                    ) : null}
+                    <Dropdown
+                      placement="bottom-start"
+                      trigger={<CompactButton icon={DotsHorizontal} />}
+                    >
+                      <DropdownItem
+                        icon={Trash}
+                        label={t("deleteComment")}
+                        disabled={!canDelete}
+                        onClick={() => {
+                          deleteComment.mutate({
+                            commentId: comment.id,
+                            pollId,
+                          });
+                        }}
+                      />
+                    </Dropdown>
                   </div>
                   <div className="w-fit whitespace-pre-wrap">
                     <TruncatedLinkify>{comment.content}</TruncatedLinkify>
@@ -171,7 +161,7 @@ const Discussion: React.VoidFunctionComponent = () => {
       >
         <textarea
           id="comment"
-          placeholder="Thanks for the invite!"
+          placeholder={t("commentPlaceholder")}
           className="input w-full py-2 pl-3 pr-4"
           {...register("content", { validate: requiredString })}
         />
@@ -187,12 +177,8 @@ const Discussion: React.VoidFunctionComponent = () => {
               )}
             />
           </div>
-          <Button
-            htmlType="submit"
-            loading={formState.isSubmitting}
-            type="primary"
-          >
-            Comment
+          <Button htmlType="submit" loading={formState.isSubmitting}>
+            {t("comment")}
           </Button>
         </div>
       </form>

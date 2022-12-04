@@ -1,8 +1,8 @@
 import clsx from "clsx";
 import dynamic from "next/dynamic";
-import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { Trans, useTranslation } from "next-i18next";
 import * as React from "react";
 import { createBreakpoint } from "react-use";
 
@@ -23,38 +23,39 @@ const Menu: React.VoidFunctionComponent<{ className: string }> = ({
   className,
 }) => {
   const { pathname } = useRouter();
+  const { t } = useTranslation("common");
   return (
     <nav className={className}>
       <Link href="/">
         <a
           className={clsx(
-            "hover:text-primary-500 text-gray-400 transition-colors hover:no-underline hover:underline-offset-2",
+            "text-gray-400 transition-colors hover:text-primary-500 hover:no-underline hover:underline-offset-2",
             {
               "pointer-events-none font-bold text-gray-600":
                 pathname === "/home",
             },
           )}
         >
-          Home
+          {t("home")}
         </a>
       </Link>
       <Link href="https://blog.rallly.co">
         <a
           className={clsx(
-            "hover:text-primary-500 text-gray-400 transition-colors hover:no-underline hover:underline-offset-2",
+            "text-gray-400 transition-colors hover:text-primary-500 hover:no-underline hover:underline-offset-2",
           )}
         >
-          Blog
+          {t("blog")}
         </a>
       </Link>
       <a
         href="https://support.rallly.co"
-        className="hover:text-primary-500 text-gray-400 transition-colors hover:no-underline hover:underline-offset-2"
+        className="text-gray-400 transition-colors hover:text-primary-500 hover:no-underline hover:underline-offset-2"
       >
-        Support
+        {t("support")}
       </a>
       <Link href="https://github.com/lukevella/rallly">
-        <a className="hover:text-primary-500 text-gray-400 transition-colors hover:no-underline hover:underline-offset-2">
+        <a className="text-gray-400 transition-colors hover:text-primary-500 hover:no-underline hover:underline-offset-2">
           <Github className="w-6" />
         </a>
       </Link>
@@ -66,21 +67,19 @@ const PageLayout: React.VoidFunctionComponent<PageLayoutProps> = ({
   children,
 }) => {
   const breakpoint = useBreakpoint();
+  const { t } = useTranslation("homepage");
   return (
     <div className="bg-pattern min-h-full overflow-x-hidden">
-      <Head>
-        <title>Rallly - Support</title>
-      </Head>
       <div className="mx-auto flex max-w-7xl items-center py-8 px-8">
         <div className="grow">
           <div className="relative inline-block">
             <Link href="/">
               <a>
-                <Logo className="text-primary-500 w-40" alt="Rallly" />
+                <Logo className="w-40 text-primary-500" alt="Rallly" />
               </a>
             </Link>
             <span className="absolute -bottom-6 right-0 text-sm text-slate-400 transition-colors">
-              Yes&mdash;with 3 <em>L</em>s
+              <Trans t={t} i18nKey="3Ls" components={{ e: <em /> }} />
             </span>
           </div>
         </div>
@@ -89,7 +88,7 @@ const PageLayout: React.VoidFunctionComponent<PageLayoutProps> = ({
           <Popover
             placement="left-start"
             trigger={
-              <button className="hover:text-primary-500 text-gray-400 transition-colors hover:no-underline hover:underline-offset-2">
+              <button className="text-gray-400 transition-colors hover:text-primary-500 hover:no-underline hover:underline-offset-2">
                 <DotsVertical className="w-5" />
               </button>
             }

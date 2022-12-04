@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { Prisma } from "@prisma/client";
-import { addDays } from "date-fns";
+import dayjs from "dayjs";
 
 import { prisma } from "../prisma/db";
 
@@ -16,61 +16,83 @@ test.beforeAll(async ({ request, baseURL }) => {
       // Active Poll
       {
         title: "Active Poll",
-        urlId: "active-poll",
+        id: "active-poll",
         type: "date",
         userId: "user1",
+        participantUrlId: "p1",
+        adminUrlId: "a1",
       },
       // Poll that has been deleted 6 days ago
       {
         title: "Deleted poll",
-        urlId: "deleted-poll-6d",
+        id: "deleted-poll-6d",
         type: "date",
         userId: "user1",
         deleted: true,
-        deletedAt: addDays(new Date(), -6),
+        deletedAt: dayjs().add(-6, "days").toDate(),
+        participantUrlId: "p2",
+        adminUrlId: "a2",
       },
       // Poll that has been deleted 7 days ago
       {
         title: "Deleted poll 7d",
-        urlId: "deleted-poll-7d",
+        id: "deleted-poll-7d",
         type: "date",
         userId: "user1",
         deleted: true,
-        deletedAt: addDays(new Date(), -7),
+        deletedAt: dayjs().add(-7, "days").toDate(),
+        participantUrlId: "p3",
+        adminUrlId: "a3",
       },
       // Poll that has been inactive for 29 days
       {
         title: "Still active",
-        urlId: "still-active-poll",
+        id: "still-active-poll",
         type: "date",
         userId: "user1",
-        touchedAt: addDays(new Date(), -29),
+        touchedAt: dayjs().add(-29, "days").toDate(),
+        participantUrlId: "p4",
+        adminUrlId: "a4",
       },
       // Poll that has been inactive for 30 days
       {
         title: "Inactive poll",
-        urlId: "inactive-poll",
+        id: "inactive-poll",
         type: "date",
         userId: "user1",
-        touchedAt: addDays(new Date(), -30),
+        touchedAt: dayjs().add(-30, "days").toDate(),
+        participantUrlId: "p5",
+        adminUrlId: "a5",
       },
       // Demo poll
       {
         demo: true,
         title: "Demo poll",
-        urlId: "demo-poll-new",
+        id: "demo-poll-new",
         type: "date",
         userId: "user1",
         createdAt: new Date(),
+        participantUrlId: "p6",
+        adminUrlId: "a6",
       },
-      // Old demo poll
       {
         demo: true,
-        title: "Demo poll",
-        urlId: "demo-poll-old",
+        title: "Old demo poll",
+        id: "demo-poll-old",
         type: "date",
         userId: "user1",
-        createdAt: addDays(new Date(), -2),
+        createdAt: dayjs().add(-2, "days").toDate(),
+        participantUrlId: "p7",
+        adminUrlId: "a7",
+      },
+      {
+        title: "Inactive poll with future option",
+        id: "inactive-poll-future-option",
+        type: "date",
+        userId: "user1",
+        touchedAt: dayjs().add(-30, "days").toDate(),
+        participantUrlId: "p8",
+        adminUrlId: "a8",
       },
     ],
   });
@@ -91,6 +113,21 @@ test.beforeAll(async ({ request, baseURL }) => {
         id: "option-3",
         value: "2022-02-24",
         pollId: "deleted-poll-7d",
+      },
+      {
+        id: "option-4",
+        value: `${dayjs()
+          .add(10, "days")
+          .format("YYYY-MM-DDTHH:mm:ss")}/${dayjs()
+          .add(10, "days")
+          .add(1, "hour")
+          .format("YYYY-MM-DDTHH:mm:ss")}`,
+        pollId: "inactive-poll-future-option",
+      },
+      {
+        id: "option-5",
+        value: dayjs().add(-1, "days").format("YYYY-MM-DD"),
+        pollId: "inactive-poll",
       },
     ],
   });
@@ -130,7 +167,7 @@ test.beforeAll(async ({ request, baseURL }) => {
   });
 
   expect(await res.json()).toMatchObject({
-    inactive: 1,
+    softDeleted: 1,
     deleted: 2,
   });
 });
@@ -138,7 +175,7 @@ test.beforeAll(async ({ request, baseURL }) => {
 test("should keep active polls", async () => {
   const poll = await prisma.poll.findUnique({
     where: {
-      urlId: "active-poll",
+      id: "active-poll",
     },
   });
 
@@ -150,7 +187,7 @@ test("should keep active polls", async () => {
 test("should keep polls that have been soft deleted for less than 7 days", async () => {
   const deletedPoll6d = await prisma.poll.findFirst({
     where: {
-      urlId: "deleted-poll-6d",
+      id: "deleted-poll-6d",
       deleted: true,
     },
   });
@@ -162,7 +199,7 @@ test("should keep polls that have been soft deleted for less than 7 days", async
 test("should hard delete polls that have been soft deleted for 7 days", async () => {
   const deletedPoll7d = await prisma.poll.findFirst({
     where: {
-      urlId: "deleted-poll-7d",
+      id: "deleted-poll-7d",
       deleted: true,
     },
   });
@@ -197,7 +234,7 @@ test("should hard delete polls that have been soft deleted for 7 days", async ()
 test("should keep polls that are still active", async () => {
   const stillActivePoll = await prisma.poll.findUnique({
     where: {
-      urlId: "still-active-poll",
+      id: "still-active-poll",
     },
   });
 
@@ -208,7 +245,7 @@ test("should keep polls that are still active", async () => {
 test("should soft delete polls that are inactive", async () => {
   const inactivePoll = await prisma.poll.findFirst({
     where: {
-      urlId: "inactive-poll",
+      id: "inactive-poll",
       deleted: true,
     },
   });
@@ -221,7 +258,7 @@ test("should soft delete polls that are inactive", async () => {
 test("should keep new demo poll", async () => {
   const demoPoll = await prisma.poll.findFirst({
     where: {
-      urlId: "demo-poll-new",
+      id: "demo-poll-new",
     },
   });
 
@@ -231,16 +268,35 @@ test("should keep new demo poll", async () => {
 test("should delete old demo poll", async () => {
   const oldDemoPoll = await prisma.poll.findFirst({
     where: {
-      urlId: "demo-poll-old",
+      id: "demo-poll-old",
     },
   });
 
   expect(oldDemoPoll).toBeNull();
 });
 
+test("should not delete poll that has options in the future", async () => {
+  const futureOptionPoll = await prisma.poll.findFirst({
+    where: {
+      id: "inactive-poll-future-option",
+    },
+  });
+
+  expect(futureOptionPoll).not.toBeNull();
+});
+
 // Teardown
 test.afterAll(async () => {
-  await prisma.$executeRaw`DELETE FROM polls WHERE url_id IN (${Prisma.join([
+  await prisma.$executeRaw`DELETE FROM polls WHERE id IN (${Prisma.join([
+    "active-poll",
+    "deleted-poll-6d",
+    "deleted-poll-7d",
+    "still-active-poll",
+    "inactive-poll",
+    "demo-poll-new",
+    "demo-poll-old",
+  ])})`;
+  await prisma.$executeRaw`DELETE FROM options WHERE id IN (${Prisma.join([
     "active-poll",
     "deleted-poll-6d",
     "deleted-poll-7d",

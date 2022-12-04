@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import { useTranslation } from "next-i18next";
 import * as React from "react";
 
 import { stringToValue } from "@/utils/string-to-value";
@@ -46,9 +47,7 @@ export const UserAvatarProvider: React.VoidFunctionComponent<{
       "": defaultColor,
     };
     for (let i = 0; i < names.length; i++) {
-      const lastIndex = names.length - 1;
-      // start from the end since the names is "most recent" first.
-      const name = names[lastIndex - i].trim().toLowerCase();
+      const name = names[i].trim().toLowerCase();
       const color = colors[(seedValue + i) % colors.length];
       res[name] = color;
     }
@@ -112,6 +111,7 @@ const UserAvatar: React.VoidFunctionComponent<UserAvaterProps> = ({
   className,
   ...forwardedProps
 }) => {
+  const { t } = useTranslation("app");
   if (!showName) {
     return <UserAvatarInner className={className} {...forwardedProps} />;
   }
@@ -127,7 +127,7 @@ const UserAvatar: React.VoidFunctionComponent<UserAvaterProps> = ({
       <div className="min-w-0 truncate" title={forwardedProps.name}>
         {forwardedProps.name}
       </div>
-      {isYou ? <Badge>You</Badge> : null}
+      {isYou ? <Badge>{t("you")}</Badge> : null}
     </div>
   );
 };

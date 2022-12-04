@@ -1,7 +1,7 @@
-import { format } from "date-fns";
 import { useTranslation } from "next-i18next";
 import * as React from "react";
 
+import { useDayjs } from "../../utils/dayjs";
 import { ParticipantRowView } from "../poll/desktop-poll/participant-row";
 import { ScoreSummary } from "../poll/score-summary";
 
@@ -33,8 +33,9 @@ const participants = [
 const options = ["2022-12-14", "2022-12-15", "2022-12-16", "2022-12-17"];
 
 const PollDemo: React.VoidFunctionComponent = () => {
-  const { t } = useTranslation("app");
+  const { t } = useTranslation("homepage");
 
+  const { dayjs } = useDayjs();
   return (
     <div
       className="rounded-lg bg-white py-1 shadow-huge"
@@ -66,11 +67,11 @@ const PollDemo: React.VoidFunctionComponent = () => {
               <div>
                 <div className="font-semibold leading-9">
                   <div className="text-sm uppercase text-slate-400">
-                    {format(d, "E")}
+                    {dayjs(d).format("ddd")}
                   </div>
-                  <div className="text-2xl">{format(d, "dd")}</div>
+                  <div className="text-2xl">{dayjs(d).format("DD")}</div>
                   <div className="text-xs font-medium uppercase text-slate-400/75">
-                    {format(d, "MMM")}
+                    {dayjs(d).format("MMM")}
                   </div>
                 </div>
               </div>
@@ -87,6 +88,7 @@ const PollDemo: React.VoidFunctionComponent = () => {
           color={participant.color}
           sidebarWidth={sidebarWidth}
           columnWidth={columnWidth}
+          participantId={`participant${i}`}
           name={participant.name}
           votes={options.map((_, i) => {
             return participant.votes.some((vote) => vote === i) ? "yes" : "no";

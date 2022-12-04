@@ -95,7 +95,7 @@ const Page: NextPage<CreatePollPageProps> = ({
   const plausible = usePlausible();
 
   const createPoll = trpc.useMutation(["polls.create"], {
-    onSuccess: (poll) => {
+    onSuccess: (res) => {
       setIsRedirecting(true);
       plausible("Created poll", {
         props: {
@@ -104,7 +104,7 @@ const Page: NextPage<CreatePollPageProps> = ({
         },
       });
       setPersistedFormData(initialNewEventData);
-      router.replace(`/admin/${poll.urlId}`);
+      router.replace(`/admin/${res.urlId}?sharing=true`);
     },
   });
 
@@ -152,11 +152,12 @@ const Page: NextPage<CreatePollPageProps> = ({
     <StandardLayout>
       <Head>
         <title>{formData?.eventDetails?.title ?? t("newPoll")}</title>
+        <meta name="robots" content="noindex,nofollow" />
       </Head>
       <div className="max-w-full py-4 md:px-3 lg:px-6">
         <div className="mx-auto w-fit max-w-full lg:mx-0">
           <div className="mb-4 flex items-center justify-center space-x-4 px-4 lg:justify-start">
-            <h1 className="m-0">New Poll</h1>
+            <h1 className="m-0">{t("newPoll")}</h1>
             <Steps current={currentStepIndex} total={steps.length} />
           </div>
           <div className="overflow-hidden border-t border-b bg-white shadow-sm md:rounded-lg md:border">
@@ -216,7 +217,7 @@ const Page: NextPage<CreatePollPageProps> = ({
                 type="primary"
               >
                 {currentStepIndex < steps.length - 1
-                  ? t("next")
+                  ? t("continue")
                   : t("createPoll")}
               </Button>
             </div>

@@ -8,7 +8,7 @@ import Trash from "@/components/icons/trash.svg";
 import { usePoll } from "@/components/poll-context";
 import { useSession } from "@/components/session";
 
-import { useUpdateParticipantMutation } from "../mutations";
+import { ParticipantFormSubmitted } from "../types";
 import { useDeleteParticipantModal } from "../use-delete-participant-modal";
 import UserAvatar from "../user-avatar";
 import VoteIcon from "../vote-icon";
@@ -18,8 +18,9 @@ import { usePollContext } from "./poll-context";
 
 export interface ParticipantRowProps {
   participant: Participant & { votes: Vote[] };
-  editMode: boolean;
-  onChangeEditMode: (value: boolean) => void;
+  editMode?: boolean;
+  onChangeEditMode?: (editMode: boolean) => void;
+  onSubmit?: (data: ParticipantFormSubmitted) => Promise<void>;
 }
 
 export const ParticipantRowView: React.VoidFunctionComponent<{
@@ -32,6 +33,7 @@ export const ParticipantRowView: React.VoidFunctionComponent<{
   columnWidth: number;
   sidebarWidth: number;
   isYou?: boolean;
+  participantId: string;
 }> = ({
   name,
   editable,
@@ -42,9 +44,14 @@ export const ParticipantRowView: React.VoidFunctionComponent<{
   columnWidth,
   isYou,
   color,
+  participantId,
 }) => {
   return (
-    <div data-testid="participant-row" className="group flex h-14">
+    <div
+      data-testid="participant-row"
+      data-participantid={participantId}
+      className="group flex h-14 items-center"
+    >
       <div
         className="flex shrink-0 items-center px-4"
         style={{ width: sidebarWidth }}
@@ -68,12 +75,12 @@ export const ParticipantRowView: React.VoidFunctionComponent<{
           return (
             <div
               key={i}
-              className="relative shrink-0 transition-colors"
+              className="relative flex shrink-0 items-center justify-center px-2 transition-colors"
               style={{ width: columnWidth }}
             >
               <div
                 className={clsx(
-                  "absolute inset-1 flex items-center justify-center rounded-lg",
+                  "flex h-10 w-full items-center justify-center rounded-md",
                   {
                     "bg-green-50": vote === "yes",
                     "bg-amber-50": vote === "ifNeedBe",
@@ -94,11 +101,10 @@ export const ParticipantRowView: React.VoidFunctionComponent<{
 const ParticipantRow: React.VoidFunctionComponent<ParticipantRowProps> = ({
   participant,
   editMode,
+  onSubmit,
   onChangeEditMode,
 }) => {
   const { columnWidth, sidebarWidth } = usePollContext();
-
-  const updateParticipant = useUpdateParticipantMutation();
 
   const confirmDeleteParticipant = useDeleteParticipantModal();
 
@@ -107,10 +113,9 @@ const ParticipantRow: React.VoidFunctionComponent<ParticipantRowProps> = ({
 
   const isYou = session.user && session.ownsObject(participant) ? true : false;
 
-  const isAnonymous = !participant.userId && !participant.guestId;
+  const isUnclaimed = !participant.userId;
 
-  const canEdit =
-    !poll.closed && (poll.role === "admin" || isYou || isAnonymous);
+  const canEdit = !poll.closed && (poll.admin || isYou || isUnclaimed);
 
   if (editMode) {
     return (
@@ -123,12 +128,7 @@ const ParticipantRow: React.VoidFunctionComponent<ParticipantRowProps> = ({
           }),
         }}
         onSubmit={async ({ name, votes }) => {
-          await updateParticipant.mutateAsync({
-            participantId: participant.id,
-            pollId: poll.pollId,
-            votes,
-            name,
-          });
+          await onSubmit?.({ name, votes });
           onChangeEditMode?.(false);
         }}
         onCancel={() => onChangeEditMode?.(false)}
@@ -144,6 +144,7 @@ const ParticipantRow: React.VoidFunctionComponent<ParticipantRowProps> = ({
       votes={options.map(({ optionId }) => {
         return getVote(participant.id, optionId);
       })}
+      participantId={participant.id}
       editable={canEdit}
       isYou={isYou}
       onEdit={() => {
