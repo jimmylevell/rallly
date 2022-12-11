@@ -1,4 +1,4 @@
-FROM node:alpine as build
+FROM node:19-alpine3.16 as build
 
 RUN apk update && apk add --no-cache dos2unix
 
