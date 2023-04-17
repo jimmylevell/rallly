@@ -1,6 +1,7 @@
 {
-  "extends": ["next/core-web-vitals"],
+  "extends": ["next/core-web-vitals", "turbo"],
   "plugins": ["simple-import-sort", "@typescript-eslint"],
+  "ignorePatterns": ["**/playwright-report/*.js"],
   "overrides": [
     {
       "files": ["**/*.ts", "**/*.tsx"],
@@ -14,6 +15,8 @@
     "simple-import-sort/exports": "error",
     "import/first": "error",
     "import/newline-after-import": "error",
-    "import/no-duplicates": "error"
+    "import/no-duplicates": "error",
+    "@typescript-eslint/no-unused-vars": "error",
+    "no-console": ["error", { "allow": ["warn", "error", "info"] }]
   }
 }

@@ -1,0 +1,4 @@
+{
+  "buildCommand": "./scripts/vercel.sh",
+  "outputDirectory": "./apps/web/.next"
+}

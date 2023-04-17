@@ -1,0 +1,217 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply h-full bg-gray-50 font-sans text-base text-slate-800;
+  }
+  body,
+  #__next {
+    @apply h-full;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    @apply font-sans font-semibold text-slate-800;
+  }
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+
+  label {
+    @apply block text-sm text-slate-800;
+  }
+
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    @apply rounded outline-none transition-shadow focus:border-transparent focus:ring-2 focus:ring-slate-300;
+  }
+
+  a,
+  button {
+    @apply focus:ring-offset-2 focus:ring-offset-white;
+  }
+
+  #floating-ui-root {
+    @apply absolute z-50 w-full;
+  }
+}
+
+@layer components {
+  .text-link {
+    @apply text-primary-600 hover:text-primary-600 focus-visible:ring-primary-600 rounded font-medium outline-none hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1;
+  }
+  .formField {
+    @apply mb-4;
+  }
+  .input {
+    @apply appearance-none border px-2 py-1 text-slate-800 placeholder:text-slate-500;
+  }
+  input.input {
+    @apply h-9;
+  }
+  .input-lg {
+    @apply input px-3 py-3;
+  }
+  .input-error {
+    @apply focus:ring-rose-500;
+  }
+  .checkbox {
+    @apply text-primary-600 focus:ring-primary-600 h-4 w-4 rounded border-slate-300 shadow-sm;
+  }
+  .btn {
+    @apply inline-flex h-9 select-none items-center justify-center whitespace-nowrap border px-3 font-medium shadow-sm;
+  }
+  a.btn {
+    @apply cursor-pointer hover:no-underline;
+  }
+
+  .btn-default {
+    @apply btn bg-white text-slate-800 hover:bg-gray-50 active:bg-gray-100;
+  }
+
+  a.btn-default {
+    @apply hover:text-primary-600;
+  }
+  .btn-danger {
+    @apply btn border-rose-600 bg-rose-500 text-white hover:bg-rose-600 focus-visible:ring-rose-500;
+  }
+  .btn-link {
+    @apply text-primary-600 inline-flex items-center underline;
+  }
+  .btn.btn-disabled {
+    text-shadow: none;
+    @apply pointer-events-none border-gray-200 bg-slate-500/5 text-gray-400 shadow-none;
+  }
+  .btn-primary {
+    text-shadow: rgb(0 0 0 / 20%) 0px 1px 1px;
+    @apply btn border-primary-600 bg-primary-600 active:bg-primary-600 text-white hover:bg-opacity-90;
+  }
+
+  a.btn-primary {
+    @apply text-white;
+  }
+
+  .segment-button {
+    @apply flex h-9 text-center;
+  }
+
+  .segment-button button {
+    @apply inline-flex grow items-center justify-center border-t border-b border-r bg-gray-50 px-4 transition-colors first:rounded-r-none first:border-l last:rounded-l-none hover:bg-slate-50 focus:z-10 active:bg-slate-100;
+  }
+
+  .segment-button .segment-button-active {
+    @apply pointer-events-none bg-white text-slate-800;
+  }
+
+  .menu {
+    @apply relative;
+  }
+
+  .menu-items {
+    @apply absolute z-30 mt-1 overflow-hidden rounded border bg-white shadow-md focus:outline-none;
+  }
+
+  .menu-item {
+    @apply block w-full select-none truncate px-4 py-2 text-left;
+  }
+
+  button[disabled] {
+    @apply cursor-not-allowed;
+  }
+
+  .card {
+    @apply border-y bg-white p-4 shadow-sm md:rounded-lg md:border;
+  }
+}
+
+@layer components {
+  .heading {
+    @apply text-primary-600 mb-4 text-xl;
+  }
+  .subheading {
+    @apply mb-16 text-4xl font-bold text-slate-800;
+  }
+  .heading-sm {
+    @apply mb-4 text-xl font-bold text-slate-800;
+  }
+  .text {
+    @apply text-lg leading-relaxed text-slate-500;
+  }
+}
+
+@layer utilities {
+  .bg-pattern {
+    background-color: #f9fafb;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.184 20c.357-.13.72-.264 1.088-.402l1.768-.661C33.64 15.347 39.647 14 50 14c10.271 0 15.362 1.222 24.629 4.928.955.383 1.869.74 2.75 1.072h6.225c-2.51-.73-5.139-1.691-8.233-2.928C65.888 13.278 60.562 12 50 12c-10.626 0-16.855 1.397-26.66 5.063l-1.767.662c-2.475.923-4.66 1.674-6.724 2.275h6.335zm0-20C13.258 2.892 8.077 4 0 4V2c5.744 0 9.951-.574 14.85-2h6.334zM77.38 0C85.239 2.966 90.502 4 100 4V2c-6.842 0-11.386-.542-16.396-2h-6.225zM0 14c8.44 0 13.718-1.21 22.272-4.402l1.768-.661C33.64 5.347 39.647 4 50 4c10.271 0 15.362 1.222 24.629 4.928C84.112 12.722 89.438 14 100 14v-2c-10.271 0-15.362-1.222-24.629-4.928C65.888 3.278 60.562 2 50 2 39.374 2 33.145 3.397 23.34 7.063l-1.767.662C13.223 10.84 8.163 12 0 12v2z' fill='%239C92AC' fill-opacity='0.06' fill-rule='evenodd'/%3E%3C/svg%3E");
+  }
+}
+
+.rbc-time-view {
+  @apply border-0 border-t border-b border-slate-100;
+}
+
+.rbc-today {
+  @apply bg-blue-50 bg-opacity-50;
+}
+
+.rbc-day-slot .rbc-time-slot {
+  @apply border-gray-100;
+}
+
+.rbc-time-content > * + * > * {
+  @apply border-gray-200;
+}
+.rbc-time-header.rbc-overflowing,
+.rbc-time-header-content,
+.rbc-header {
+  @apply border-gray-200;
+}
+
+.rbc-time-content {
+  @apply border-t-0;
+}
+
+.rbc-time-view .rbc-allday-cell {
+  @apply hidden;
+}
+
+.rbc-label.rbc-time-header-gutter {
+  @apply border-b;
+}
+
+.rbc-current-time-indicator {
+  @apply bg-rose-400;
+}
+
+.rbc-header + .rbc-header {
+  @apply border-l-0;
+}
+
+.rbc-header a {
+  @apply block h-full w-full p-1 no-underline hover:text-slate-800;
+}
+
+.rbc-day-slot .rbc-events-container {
+  @apply mr-2;
+}
+.rbc-slot-selection {
+  @apply rounded-sm bg-green-50 text-green-500;
+}
+
+.rbc-header.rbc-today {
+  @apply bg-white text-rose-600;
+}
+
+.rbc-button-link {
+  @apply m-1 w-full;
+}

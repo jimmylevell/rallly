@@ -1,0 +1,64 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**"],
+      "env": [
+        "ALLOWED_EMAILS",
+        "ANALYZE",
+        "API_SECRET",
+        "AUTH_REQUIRED",
+        "AWS_REGION",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_ACCESS_KEY_ID",
+        "DISABLE_LANDING_PAGE",
+        "EMAIL_PROVIDER",
+        "MAINTENANCE_MODE",
+        "NEXT_PUBLIC_APP_VERSION",
+        "NEXT_PUBLIC_BASE_URL",
+        "NEXT_PUBLIC_BETA",
+        "NEXT_PUBLIC_CRISP_WEBSITE_ID",
+        "NEXT_PUBLIC_ENABLE_ANALYTICS",
+        "NEXT_PUBLIC_MAINTENANCE_MODE",
+        "NEXT_PUBLIC_POSTHOG_API_HOST",
+        "NEXT_PUBLIC_POSTHOG_API_KEY",
+        "NEXT_PUBLIC_SENTRY_DSN",
+        "NEXT_PUBLIC_VERCEL_URL",
+        "NEXT_PUBLIC_FEEDBACK_EMAIL",
+        "NODE_ENV",
+        "PORT",
+        "SECRET_PASSWORD",
+        "SENTRY_AUTH_TOKEN",
+        "SENTRY_DSN",
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_PWD",
+        "SMTP_SECURE",
+        "SMTP_USER",
+        "SUPPORT_EMAIL"
+      ]
+    },
+    "test": {
+      "outputs": [],
+      "env": ["CI"]
+    },
+    "db:generate": {
+      "dependsOn": ["^db:generate"]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "lint:tsc": {
+      "outputs": []
+    },
+    "dev": {
+      "cache": false
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
