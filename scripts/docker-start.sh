@@ -1,7 +1,7 @@
-#!/bin/sh
+#!/bin/bash
 
 # call docker secret expansion in env variables
-source /set_env_secrets.sh
+source /app/set_env_secrets.sh
 
 set -e
 prisma migrate deploy --schema=./prisma/schema.prisma
