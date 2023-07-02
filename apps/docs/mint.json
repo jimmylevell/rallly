@@ -6,62 +6,82 @@
   },
   "favicon": "/favicon.png",
   "colors": {
-    "primary": "#6366F1",
-    "light": "#9C9EFF",
-    "dark": "#334155",
+    "primary": "#4f46e5",
+    "light": "#6366f1",
+    "dark": "#1f2937",
     "anchors": { "from": "#878AFA", "to": "#4347F1" }
   },
   "topbarCtaButton": {
-    "name": "Get started",
+    "name": "Get Started",
     "url": "https://rallly.co/new"
   },
   "topbarLinks": [
     {
-      "name": "Live demo",
-      "url": "https://rallly.co/demo"
+      "name": "Contact",
+      "url": "/contact/support"
     }
   ],
   "anchors": [
     {
-      "name": "GitHub",
-      "icon": "github",
-      "url": "https://github.com/lukevella/rallly"
+      "name": "Self-Hosting",
+      "icon": "server",
+      "url": "self-hosting"
     },
     {
-      "name": "Blog",
-      "icon": "newspaper",
-      "url": "https://blog.rallly.co/"
+      "name": "Contributing Guide",
+      "icon": "hand-holding-heart",
+      "url": "contribute"
     },
     {
-      "name": "Contact us",
-      "icon": "comments",
-      "url": "https://go.crisp.chat/chat/embed/?website_id=19d601db-af05-4f24-8342-8dd4449aedb8"
+      "name": "Contact",
+      "icon": "messages",
+      "url": "contact"
     }
   ],
   "navigation": [
     {
-      "group": "Introduction",
-      "pages": ["introduction"]
+      "group": "Documentation",
+      "pages": ["introduction", "faq"]
     },
     {
-      "group": "Administrators",
+      "group": "Guides for Administrators",
       "pages": [
-        "administrators/accessing-the-admin-page",
-        "administrators/sharing-a-poll",
-        "administrators/editing-a-poll",
-        "administrators/deleting-a-poll"
+        "administrators/creating-a-meeting-poll",
+        "administrators/sharing-a-meeting-poll",
+        "administrators/editing-a-meeting-poll",
+        "administrators/deleting-a-meeting-poll"
       ]
     },
     {
-      "group": "Participants",
+      "group": "Guides for Participants",
       "pages": [
         "participants/submitting-a-response",
         "participants/editing-a-response"
       ]
     },
     {
-      "group": "Other Docs",
-      "pages": ["guest-sessions", "privacy-and-security", "self-hosting"]
+      "group": "Self-Hosting",
+      "pages": [
+        "self-hosting/introduction",
+        "self-hosting/managed-hosting",
+        "self-hosting/configuration-options"
+      ]
+    },
+    {
+      "group": "Contributing Guide",
+      "pages": ["contribute/introduction"]
+    },
+    {
+      "group": "How to Contribute",
+      "pages": [
+        "contribute/donations",
+        "contribute/translations",
+        "contribute/documentation"
+      ]
+    },
+    {
+      "group": "Contact",
+      "pages": ["contact/support"]
     }
   ],
   "footerSocials": {
@@ -69,5 +89,9 @@
     "github": "https://github.com/lukevella/rallly",
     "discord": "https://discord.com/invite/uzg4ZcHbuM",
     "website": "https://rallly.co/"
+  },
+  "feedback": {
+    "suggestEdit": true,
+    "raiseIssue": true
   }
 }

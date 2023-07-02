@@ -24,7 +24,7 @@ export const Text = (
         margin: "16px 0",
         fontFamily,
         fontSize: small ? "14px" : "16px",
-        color: light ? "#64748B" : "#374151",
+        color: light ? "#64748B" : "#334155",
         lineHeight: "1.5",
         ...props.style,
       }}
@@ -44,7 +44,7 @@ export const Button = (props: ButtonProps) => {
       style={{
         backgroundColor: "#4F46E5",
         borderRadius: "4px",
-        padding: "8px 12px",
+        padding: "12px 14px",
         fontFamily,
         fontSize: "16px",
         color: "white",
@@ -81,6 +81,7 @@ export const Heading = (
       style={{
         marginTop: "16px",
         marginBottom: "8px",
+        letterSpacing: "-0.75px",
         fontFamily: "sans-serif",
         fontWeight: "bold",
         fontSize: fontSize[as],
@@ -135,7 +136,7 @@ export const Card = (props: SectionProps) => {
       {...props}
       style={{
         borderRadius: "4px",
-        backgroundColor: "#F1F5F9",
+        backgroundColor: "#F9FAFB",
         paddingRight: "16px",
         paddingLeft: "16px",
         border: "1px solid #E2E8F0",

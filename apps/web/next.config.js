@@ -4,7 +4,7 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 const { withSentryConfig } = require("@sentry/nextjs");
-const { i18n } = require("./next-i18next.config");
+const i18n = require("./i18n.config.js");
 const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true",
 });
@@ -13,7 +13,12 @@ const nextConfig = {
   i18n: i18n,
   productionBrowserSourceMaps: true,
   output: "standalone",
-  transpilePackages: ["@rallly/backend", "@rallly/icons"],
+  transpilePackages: [
+    "@rallly/backend",
+    "@rallly/icons",
+    "@rallly/ui",
+    "@rallly/tailwind-config",
+  ],
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,
@@ -33,14 +38,15 @@ const nextConfig = {
         destination: "https://support.rallly.co",
         permanent: true,
       },
-    ];
-  },
-
-  async rewrites() {
-    return [
+      {
+        source: "/profile",
+        destination: "/settings/profile",
+        permanent: true,
+      },
       {
         source: "/",
-        destination: "/home",
+        destination: "/polls",
+        permanent: false,
       },
     ];
   },

@@ -63,6 +63,13 @@ const getTransport = () => {
               pass: process.env.SMTP_PWD,
             }
           : undefined,
+        tls:
+          process.env.SMTP_TLS_ENABLED === "true"
+            ? {
+                ciphers: "SSLv3",
+                rejectUnauthorized: false,
+              }
+            : undefined,
       });
     }
   }
@@ -74,7 +81,7 @@ type SendEmailOptions<T extends TemplateName> = {
   to: string;
   subject: string;
   props: TemplateProps<T>;
-  onError?: () => void;
+  attachments?: Mail.Options["attachments"];
 };
 
 export const sendEmail = async <T extends TemplateName>(
@@ -87,23 +94,23 @@ export const sendEmail = async <T extends TemplateName>(
   }
 
   const Template = templates[templateName] as TemplateComponent<T>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const html = render(<Template {...(options.props as any)} />);
 
   try {
     await sendRawEmail({
       from: {
         name: "Rallly",
-        address: process.env.SUPPORT_EMAIL,
+        address: process.env.NOREPLY_EMAIL || process.env.SUPPORT_EMAIL,
       },
       to: options.to,
       subject: options.subject,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       html,
+      attachments: options.attachments,
     });
-    return;
   } catch (e) {
     console.error("Error sending email", templateName, e);
-    options.onError?.();
   }
 };
 
@@ -113,6 +120,6 @@ export const sendRawEmail = async (options: Mail.Options) => {
     await transport.sendMail(options);
     return;
   } catch (e) {
-    console.error("Error sending email");
+    console.error("Error sending email", e);
   }
 };

@@ -24,7 +24,7 @@ export const NewParticipantConfirmationEmail = ({
       preview="To edit your response use the link below"
     >
       <Text>
-        Thank you for responding to <strong>{title}</strong>.
+        Your response to <strong>{title}</strong> has been submitted.
       </Text>
       <Text>
         While the poll is still open you can change your response using the link

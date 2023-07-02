@@ -3,19 +3,22 @@ import "tailwindcss/tailwind.css";
 import "../style.css";
 
 import { trpc, UserSession } from "@rallly/backend/next/trpc/client";
+import { TooltipProvider } from "@rallly/ui/tooltip";
 import { inject } from "@vercel/analytics";
+import { domMax, LazyMotion } from "framer-motion";
 import { NextPage } from "next";
 import { AppProps } from "next/app";
 import { Inter } from "next/font/google";
 import Head from "next/head";
 import { appWithTranslation } from "next-i18next";
 import { DefaultSeo } from "next-seo";
-import posthog from "posthog-js";
-import { PostHogProvider } from "posthog-js/react";
 import React from "react";
 
 import Maintenance from "@/components/maintenance";
+import { UserProvider } from "@/components/user-provider";
+import { DayjsProvider } from "@/utils/dayjs";
 
+import * as nextI18nNextConfig from "../../next-i18next.config.js";
 import { NextPageWithLayout } from "../types";
 import { absoluteUrl } from "../utils/absolute-url";
 
@@ -25,28 +28,12 @@ const inter = Inter({
 });
 
 type PageProps = {
-  user: UserSession;
+  user?: UserSession;
 };
 
 type AppPropsWithLayout = AppProps<PageProps> & {
   Component: NextPageWithLayout<PageProps>;
 };
-
-if (typeof window !== "undefined" && process.env.NEXT_PUBLIC_POSTHOG_API_KEY) {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_API_KEY, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_API_HOST,
-    opt_out_capturing_by_default: false,
-    capture_pageview: false,
-    capture_pageleave: false,
-    autocapture: false,
-    opt_in_site_apps: true,
-    loaded: (posthog) => {
-      if (!process.env.NEXT_PUBLIC_POSTHOG_API_KEY) {
-        posthog.opt_out_capturing();
-      }
-    },
-  });
-}
 
 const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
   React.useEffect(() => {
@@ -63,7 +50,7 @@ const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
   const getLayout = Component.getLayout ?? ((page) => page);
 
   return (
-    <PostHogProvider client={posthog}>
+    <LazyMotion features={domMax}>
       <DefaultSeo
         openGraph={{
           siteName: "Rallly",
@@ -94,9 +81,15 @@ const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
           --font-inter: ${inter.style.fontFamily};
         }
       `}</style>
-      {getLayout(<Component {...pageProps} />)}
-    </PostHogProvider>
+      <UserProvider>
+        <DayjsProvider>
+          <TooltipProvider delayDuration={200}>
+            {getLayout(<Component {...pageProps} />)}
+          </TooltipProvider>
+        </DayjsProvider>
+      </UserProvider>
+    </LazyMotion>
   );
 };
 
-export default trpc.withTRPC(appWithTranslation(MyApp));
+export default trpc.withTRPC(appWithTranslation(MyApp, nextI18nNextConfig));

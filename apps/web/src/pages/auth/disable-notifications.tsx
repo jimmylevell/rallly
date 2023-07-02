@@ -21,7 +21,7 @@ import { withPageTranslations } from "@/utils/with-page-translations";
 const Redirect = (props: React.PropsWithChildren<{ redirect: string }>) => {
   const router = useRouter();
   const [enabled, setEnabled] = React.useState(false);
-  const { t } = useTranslation("app");
+  const { t } = useTranslation();
 
   useMount(() => {
     setTimeout(() => {
@@ -46,8 +46,8 @@ const Redirect = (props: React.PropsWithChildren<{ redirect: string }>) => {
           <Spinner />
         )}
       </div>
-      <div className="text-slate-800">{props.children}</div>
-      <div className="text-sm text-slate-500">
+      <div className="text-gray-800">{props.children}</div>
+      <div className="text-sm text-gray-500">
         <Trans
           t={t}
           i18nKey="redirect"
@@ -70,7 +70,7 @@ type PageProps =
   | { error: undefined; data: Data };
 
 const Page = (props: PageProps) => {
-  const { t } = useTranslation("app");
+  const { t } = useTranslation();
   const posthog = usePostHog();
 
   useMount(() => {
@@ -102,7 +102,7 @@ const Page = (props: PageProps) => {
 };
 
 export const getServerSideProps = composeGetServerSideProps(
-  withPageTranslations(["app"]),
+  withPageTranslations(),
   withSessionSsr(async (ctx) => {
     const token = ctx.query.token as string;
 

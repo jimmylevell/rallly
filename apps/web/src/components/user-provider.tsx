@@ -1,16 +1,14 @@
 import { trpc, UserSession } from "@rallly/backend";
-import { useRouter } from "next/router";
 import { useTranslation } from "next-i18next";
 import React from "react";
 
-import { usePostHog } from "@/utils/posthog";
+import { PostHogProvider } from "@/contexts/posthog";
 
 import { useRequiredContext } from "./use-required-context";
 
 export const UserContext = React.createContext<{
   user: UserSession & { shortName: string };
   refresh: () => void;
-  logout: () => void;
   ownsObject: (obj: { userId: string | null }) => boolean;
 } | null>(null);
 
@@ -45,42 +43,21 @@ export const IfGuest = (props: { children?: React.ReactNode }) => {
   return <>{props.children}</>;
 };
 
-export const UserProvider = (props: {
-  children?: React.ReactNode;
-  forceUserId?: string;
-}) => {
-  const { t } = useTranslation("app");
+export const UserProvider = (props: { children?: React.ReactNode }) => {
+  const { t } = useTranslation();
 
   const queryClient = trpc.useContext();
+
   const { data: user } = trpc.whoami.get.useQuery();
-
-  const router = useRouter();
-  const logout = trpc.whoami.destroy.useMutation({
-    onSuccess: async () => {
-      router.push("/logout");
-    },
-  });
-
-  const posthog = usePostHog();
-
-  React.useEffect(() => {
-    if (user && posthog?.__loaded && posthog?.get_distinct_id() !== user.id) {
-      posthog?.identify(
-        user.id,
-        !user.isGuest
-          ? { email: user.email, name: user.name }
-          : { name: user.id },
-      );
-    }
-  }, [posthog, user]);
+  const { data: userPreferences } = trpc.userPreferences.get.useQuery();
 
   const shortName = user
     ? user.isGuest === false
-      ? user.name
+      ? user.name.split(" ")[0]
       : user.id.substring(0, 10)
     : t("guest");
 
-  if (!user) {
+  if (!user || userPreferences === undefined) {
     return null;
   }
 
@@ -92,20 +69,11 @@ export const UserProvider = (props: {
           return queryClient.whoami.invalidate();
         },
         ownsObject: ({ userId }) => {
-          if (
-            (userId && user.id === userId) ||
-            (props.forceUserId && props.forceUserId === userId)
-          ) {
-            return true;
-          }
-          return false;
-        },
-        logout: () => {
-          logout.mutate();
+          return userId ? [user.id].includes(userId) : false;
         },
       }}
     >
-      {props.children}
+      <PostHogProvider>{props.children}</PostHogProvider>
     </UserContext.Provider>
   );
 };

@@ -1,11 +1,11 @@
-FROM node:16 AS builder
+FROM node:18 AS builder
 
 WORKDIR /app
 RUN yarn global add turbo
 COPY . .
 RUN turbo prune --scope=@rallly/web --docker
 
-FROM node:16 AS installer
+FROM node:18 AS installer
 
 WORKDIR /app
 COPY .gitignore .gitignore
@@ -23,7 +23,7 @@ ENV NEXT_PUBLIC_APP_VERSION=$APP_VERSION
 
 RUN yarn build
 
-FROM node:16 AS runner
+FROM node:18 AS runner
 
 WORKDIR /app
 
@@ -34,8 +34,9 @@ RUN adduser --system --uid 1001 nextjs
 USER nextjs
 
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/docker-start.sh ./
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/set_env_secrets.sh ./
 COPY --from=builder --chown=nextjs:nodejs /app/packages/database/prisma ./prisma
- 
+
 COPY --from=installer /app/apps/web/next.config.js .
 COPY --from=installer /app/apps/web/package.json .
 

@@ -20,7 +20,10 @@ export const trpc = createTRPCNext<AppRouter>({
       queryClientConfig: {
         defaultOptions: {
           queries: {
+            retry: false,
+            networkMode: "always",
             cacheTime: Infinity,
+            staleTime: 1000 * 60,
           },
         },
         mutationCache: new MutationCache({

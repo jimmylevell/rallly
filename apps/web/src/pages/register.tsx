@@ -10,7 +10,7 @@ import { withSession } from "../components/user-provider";
 import { withPageTranslations } from "../utils/with-page-translations";
 
 const Page: NextPage = () => {
-  const { t } = useTranslation("app");
+  const { t } = useTranslation();
   const router = useRouter();
   return (
     <AuthLayout>
@@ -19,15 +19,13 @@ const Page: NextPage = () => {
       </Head>
       <RegisterForm
         onRegistered={() => {
-          router.replace("/profile");
+          router.replace("/polls");
         }}
       />
     </AuthLayout>
   );
 };
 
-export const getServerSideProps = withSessionSsr(
-  withPageTranslations(["common", "app"]),
-);
+export const getServerSideProps = withSessionSsr(withPageTranslations());
 
 export default withSession(Page);
