@@ -48,7 +48,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          context: .
+          file: ./apps/web/Dockerfile
           tags: |
             ghcr.io/jimmylevell/rally/rally:latest
       -
