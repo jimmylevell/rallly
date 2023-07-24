@@ -1,0 +1,20 @@
+{
+  "login": "Prihlásiť sa",
+  "links": "Odkazy",
+  "blog": "Blog",
+  "discussions": "Diskusie",
+  "footerCredit": "Vytvoril <a>@imlukevella</a>",
+  "footerSponsor": "Tento projekt je financovaný používateľmi. Zvážte jeho podporu <a>príspevkom</a>.",
+  "language": "Jazyk",
+  "poweredBy": "Beží na",
+  "privacyPolicy": "Ochrana osobných údajov",
+  "support": "Podpora",
+  "cookiePolicy": "Zásady používania cookies",
+  "termsOfUse": "Podmienky používania",
+  "volunteerTranslator": "Pomôžte s prekladom tejto stránky",
+  "notFoundTitle": "404 nenájdené",
+  "notFoundDescription": "Nemohli sme nájsť stránku, ktorú hľadáte.",
+  "goToHome": "Prejsť na Domovskú stránku",
+  "goToApp": "Prejsť do aplikácie",
+  "pricing": "Cenník"
+}

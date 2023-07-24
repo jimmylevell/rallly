@@ -1,7 +1,11 @@
-<img src="./assets/images/logo.png" alt="Rallly" />
-
 <div align="center">
+  
+<img src="./assets/images/logo-color.svg" width="200px" alt="Rallly" />
 
+</div>
+<br />
+<div align="center">
+  
 [![Actions Status](https://github.com/lukevella/rallly/workflows/ci/badge.svg?branch=main)](https://github.com/lukevella/rallly/actions)
 [![Crowdin](https://badges.crowdin.net/rallly/localized.svg)](https://crowdin.com/project/rallly)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-orange.svg)](https://www.gnu.org/licenses/agpl-3.0)
@@ -10,15 +14,11 @@
 
 </div>
 
+<img src="./assets/images/splash.png" alt="Rallly" />
+
 Schedule group meetings with friends, colleagues and teams. Create meeting polls to find the best date and time to organize an event based on your participants' availability. Save time and avoid back-and-forth emails.
 
 Built with [Next.js](https://github.com/vercel/next.js/), [Prisma](https://github.com/prisma/prisma), [tRPC](https://github.com/trpc/trpc) & [TailwindCSS](https://github.com/tailwindlabs/tailwindcss)
-
-<div align="center">
-
-<img src="./assets/images/poll-image.png" alt="Rallly"  />
-
-</div>
 
 ## Self-hosting
 
@@ -91,9 +91,11 @@ Thank you to our sponsors for making this project possible.
 
 This project is also supported by the following companies through their open-source sponsorships.
 
+<a href="https://appwrite.io"><img src="./assets/images/appwrite.svg" alt="appwrite" height="30" /></a>
+&nbsp;&nbsp;&nbsp;
 <a href="https://vercel.com/?utm_source=rallly&utm_campaign=oss"><img src="./apps/landing/public/vercel-logotype-dark.svg" alt="Powered by Vercel" height="30" /></a>
 &nbsp;&nbsp;&nbsp;
 <a href="https://m.do.co/c/f91efc9c9e50"><img src="./apps/landing/public/digitalocean.svg" alt="Digital Ocean" height="30" /></a>
 &nbsp;&nbsp;&nbsp;
 <a href="https://sentry.io"><img src="./apps/landing/public/sentry.svg" alt="Sentry" height="30" /></a>&nbsp;&nbsp;&nbsp;
-<a href="https://cloudron.io"><img src="./assets/images/cloudron-logo.svg" alt="Cloudron" height="30"></a>
+<a href="https://cloudron.io"><img src="./assets/images/cloudron-logo.svg" alt="Cloudron" height="36"></a>

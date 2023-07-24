@@ -5,7 +5,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 const supportedLocales = Object.keys(languages);
 
+// these paths are always public
 const publicPaths = ["/login", "/register", "/invite", "/auth"];
+// these paths always require authentication
+const protectedPaths = ["/settings/billing", "/settings/profile"];
 
 export async function middleware(req: NextRequest) {
   const { headers, cookies, nextUrl } = req;
@@ -13,14 +16,22 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const session = await getSession(req, res);
 
-  if (
-    process.env.AUTH_REQUIRED &&
-    session.user?.isGuest !== false &&
+  // a protected path is one that requires to be logged in
+  const isProtectedPath = protectedPaths.some((protectedPath) =>
+    req.nextUrl.pathname.includes(protectedPath),
+  );
+
+  const isProtectedPathDueToRequiredAuth =
+    process.env.AUTH_REQUIRED === "true" &&
     !publicPaths.some((publicPath) =>
       req.nextUrl.pathname.startsWith(publicPath),
-    )
-  ) {
+    );
+
+  const isGuest = session.user?.isGuest !== false;
+
+  if (isGuest && (isProtectedPathDueToRequiredAuth || isProtectedPath)) {
     newUrl.pathname = "/login";
+    newUrl.searchParams.set("redirect", req.nextUrl.pathname);
     return NextResponse.redirect(newUrl);
   }
 

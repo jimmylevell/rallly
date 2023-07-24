@@ -7,7 +7,6 @@ export const BlogLayout = ({ children }: React.PropsWithChildren) => {
   return (
     <div className="mx-auto w-full max-w-2xl">
       <div>{children}</div>
-
       <Script
         id="mailerlite"
         dangerouslySetInnerHTML={{
@@ -32,7 +31,10 @@ export const BlogLayout = ({ children }: React.PropsWithChildren) => {
           </div>
         </div>
         <div className="flex sm:ml-11">
-          <div className="ml-embedded w-96 p-0" data-form="h9YecB" />
+          <div
+            className="ml-embedded min-h-[88px] w-96 p-0"
+            data-form="h9YecB"
+          />
         </div>
       </div>
     </div>

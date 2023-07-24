@@ -1,0 +1,16 @@
+{
+  "login": "Log ind",
+  "links": "Links",
+  "blog": "Blog",
+  "discussions": "Diskussioner",
+  "footerCredit": "Lavet af <a>@imlukevella</a>",
+  "footerSponsor": "Dette projekt er brugerfinansieret. Overvej at støtte det ved at <a>donere</a>.",
+  "language": "Sprog",
+  "poweredBy": "Drevet af",
+  "privacyPolicy": "Fortrolighedspolitik",
+  "support": "Support",
+  "volunteerTranslator": "Hjælp med at oversætte dette websted",
+  "notFoundTitle": "404 Ikke Fundet",
+  "notFoundDescription": "Kunne ikke finde den side, du ledte efter.",
+  "goToHome": "Gå til startside"
+}
