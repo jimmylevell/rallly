@@ -1,18 +1,17 @@
-import { trpc } from "@rallly/backend";
 import {
   ChevronDown,
   CreditCardIcon,
+  GemIcon,
   LifeBuoyIcon,
   ListIcon,
   LogInIcon,
   LogOutIcon,
+  MegaphoneIcon,
   RefreshCcwIcon,
-  ScrollTextIcon,
   Settings2Icon,
   UserIcon,
   UserPlusIcon,
 } from "@rallly/icons";
-import { Badge } from "@rallly/ui/badge";
 import { Button } from "@rallly/ui/button";
 import {
   DropdownMenu,
@@ -26,36 +25,18 @@ import Link from "next/link";
 
 import { Trans } from "@/components/trans";
 import { CurrentUserAvatar } from "@/components/user";
+import { IfCloudHosted, IfSelfHosted } from "@/contexts/environment";
+import { Plan } from "@/contexts/plan";
+import { isFeedbackEnabled } from "@/utils/constants";
 
 import { IfAuthenticated, IfGuest, useUser } from "./user-provider";
 
-const Plan = () => {
-  const { isFetched, data } = trpc.user.getBilling.useQuery();
-  if (!isFetched) {
-    return null;
-  }
-
-  const isPlus = data && data.endDate.getTime() > Date.now();
-
-  if (isPlus) {
-    return (
-      <Badge>
-        <Trans i18nKey="planPro" defaults="Pro" />
-      </Badge>
-    );
-  }
-  return (
-    <Badge variant="secondary">
-      <Trans i18nKey="planFree" defaults="Free" />
-    </Badge>
-  );
-};
 export const UserDropdown = () => {
   const { user } = useUser();
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild className="group">
-        <Button className="rounded-full">
+        <Button variant="ghost" className="rounded-full">
           <CurrentUserAvatar size="sm" className="-ml-1" />
           <ChevronDown className="h-4 w-4" />
         </Button>
@@ -73,17 +54,18 @@ export const UserDropdown = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <IfAuthenticated>
-          <DropdownMenuItem asChild={true}>
-            <Link
-              href="/settings/profile"
-              className="flex items-center gap-x-2"
-            >
-              <UserIcon className="h-4 w-4" />
-              <Trans i18nKey="profile" defaults="Profile" />
-            </Link>
-          </DropdownMenuItem>
-        </IfAuthenticated>
+        <DropdownMenuItem asChild={true}>
+          <Link href="/polls" className="flex items-center gap-x-2 sm:hidden">
+            <ListIcon className="h-4 w-4" />
+            <Trans i18nKey="polls" defaults="Polls" />
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild={true}>
+          <Link href="/settings/profile" className="flex items-center gap-x-2">
+            <UserIcon className="h-4 w-4" />
+            <Trans i18nKey="profile" defaults="Profile" />
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild={true}>
           <Link
             href="/settings/preferences"
@@ -93,7 +75,7 @@ export const UserDropdown = () => {
             <Trans i18nKey="preferences" defaults="Preferences" />
           </Link>
         </DropdownMenuItem>
-        <IfAuthenticated>
+        <IfCloudHosted>
           <DropdownMenuItem asChild={true}>
             <Link
               href="/settings/billing"
@@ -103,13 +85,7 @@ export const UserDropdown = () => {
               <Trans i18nKey="Billing" defaults="Billing" />
             </Link>
           </DropdownMenuItem>
-        </IfAuthenticated>
-        <DropdownMenuItem asChild={true}>
-          <Link href="/polls" className="flex items-center gap-x-2 sm:hidden">
-            <ListIcon className="h-4 w-4" />
-            <Trans i18nKey="polls" defaults="Polls" />
-          </Link>
-        </DropdownMenuItem>
+        </IfCloudHosted>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild={true}>
           <Link
@@ -121,16 +97,30 @@ export const UserDropdown = () => {
             <Trans i18nKey="support" defaults="Support" />
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild={true}>
-          <Link
-            target="_blank"
-            href="https://rallly.co/blog"
-            className="flex items-center gap-x-2"
-          >
-            <ScrollTextIcon className="h-4 w-4" />
-            <Trans i18nKey="changelog" defaults="Change log" />
-          </Link>
-        </DropdownMenuItem>
+        <IfSelfHosted>
+          <DropdownMenuItem asChild={true}>
+            <Link
+              target="_blank"
+              href="https://support.rallly.co/self-hosting/pricing"
+              className="flex items-center gap-x-2"
+            >
+              <GemIcon className="h-4 w-4" />
+              <Trans i18nKey="pricing" defaults="Pricing" />
+            </Link>
+          </DropdownMenuItem>
+        </IfSelfHosted>
+        {isFeedbackEnabled ? (
+          <DropdownMenuItem asChild={true}>
+            <Link
+              target="_blank"
+              href="https://feedback.rallly.co"
+              className="flex items-center gap-x-2"
+            >
+              <MegaphoneIcon className="h-4 w-4" />
+              <Trans i18nKey="feedback" defaults="Feedback" />
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuSeparator />
         <IfGuest>
           <DropdownMenuItem asChild={true}>

@@ -6,6 +6,7 @@ import Discussion from "@/components/discussion";
 import { EventCard } from "@/components/event-card";
 import DesktopPoll from "@/components/poll/desktop-poll";
 import MobilePoll from "@/components/poll/mobile-poll";
+import { VotingForm } from "@/components/poll/voting-form";
 import { usePoll } from "@/contexts/poll";
 
 import { useTouchBeacon } from "./poll/use-touch-beacon";
@@ -34,12 +35,18 @@ export const Poll = () => {
     <div className={cn("space-y-3 sm:space-y-4")}>
       <EventCard />
       <Card fullWidthOnMobile={false}>
-        <PollComponent />
+        <VotingForm>
+          <PollComponent />
+        </VotingForm>
       </Card>
-      <hr className="my-4" />
-      <Card fullWidthOnMobile={false}>
-        <Discussion />
-      </Card>
+      {poll.disableComments ? null : (
+        <>
+          <hr className="my-4" />
+          <Card fullWidthOnMobile={false}>
+            <Discussion />
+          </Card>
+        </>
+      )}
     </div>
   );
 };

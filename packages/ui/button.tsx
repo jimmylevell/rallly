@@ -6,7 +6,7 @@ import * as React from "react";
 import { cn } from "./lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex border font-medium disabled:text-muted-foreground disabled:bg-gray-200 disabled:pointer-events-none select-none items-center justify-center gap-x-2 whitespace-nowrap rounded-md border",
+  "inline-flex border font-medium disabled:text-muted-foreground focus:ring-1 focus:ring-gray-200 disabled:bg-muted disabled:pointer-events-none select-none items-center justify-center whitespace-nowrap rounded-md border",
   {
     variants: {
       variant: {
@@ -15,16 +15,16 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground active:bg-destructive hover:bg-destructive/90",
         default:
-          "rounded-md px-3.5 py-2.5 hover:shadow-sm active:shadow-none data-[state=open]:shadow-none data-[state=open]:bg-gray-100 active:bg-gray-100 hover:bg-white/50 bg-gray-50",
+          "rounded-md px-3.5 py-2.5 data-[state=open]:shadow-none hover:border-gray-100 data-[state=open]:bg-gray-100 active:bg-gray-100 hover:bg-white/50 bg-gray-50",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "border-transparent hover:bg-gray-200/50 active:bg-gray-200",
+        ghost: "border-transparent hover:bg-gray-200 active:bg-gray-300",
         link: "underline-offset-4 hover:underline text-primary",
       },
       size: {
-        default: "h-9 px-2.5 text-sm",
-        sm: "h-7 text-sm px-1 rounded-md",
-        lg: "h-11 text-base px-4 rounded-md",
+        default: "h-9 px-2.5 gap-x-2.5 text-sm",
+        sm: "h-7 text-xs px-2 gap-x-1.5 rounded-md",
+        lg: "h-11 text-base gap-x-3 px-4 rounded-md",
       },
     },
     defaultVariants: {
@@ -78,7 +78,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             {loading ? (
               <SpinnerIcon className="inline-block h-4 w-4 animate-spin" />
             ) : Icon ? (
-              <Icon className="h-4 w-4" />
+              <Icon className="-ml-0.5 h-4 w-4" />
             ) : null}
             {children}
           </>

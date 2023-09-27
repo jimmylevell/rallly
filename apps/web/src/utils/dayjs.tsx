@@ -118,6 +118,11 @@ const dayjsLocales: Record<
     timeFormat: "hours24",
     import: () => import("dayjs/locale/nl"),
   },
+  no: {
+    weekStart: 1,
+    timeFormat: "hours24",
+    import: () => import("dayjs/locale/nb"), // Bokmål
+  },
   hu: {
     weekStart: 1,
     timeFormat: "hours24",
@@ -132,6 +137,11 @@ const dayjsLocales: Record<
     weekStart: 1,
     timeFormat: "hours24",
     import: () => import("dayjs/locale/vi"),
+  },
+  tr: {
+    weekStart: 1,
+    timeFormat: "hours24",
+    import: () => import("dayjs/locale/tr"),
   },
 };
 
@@ -175,7 +185,7 @@ export const DayjsProvider: React.FunctionComponent<{
   const localeConfig = dayjsLocales[router.locale ?? "en"];
   const { data } = trpc.userPreferences.get.useQuery();
 
-  useAsync(async () => {
+  const state = useAsync(async () => {
     const locale = await localeConfig.import();
     const localeTimeFormat = localeConfig.timeFormat;
     const timeFormat = data?.timeFormat ?? localeConfig.timeFormat;
@@ -200,13 +210,19 @@ export const DayjsProvider: React.FunctionComponent<{
 
   const preferredTimeZone = data?.timeZone ?? locale.timeZone;
 
+  if (state.loading) {
+    // wait for locale to load before rendering
+    return null;
+  }
+
   return (
     <DayjsContext.Provider
       value={{
-        adjustTimeZone: (date, keepLocalTime) =>
-          keepLocalTime
-            ? dayjs(date).tz("GMT")
-            : dayjs(date).tz(preferredTimeZone),
+        adjustTimeZone: (date, keepLocalTime) => {
+          return keepLocalTime
+            ? dayjs(date).utc()
+            : dayjs(date).tz(preferredTimeZone);
+        },
         dayjs,
         locale,
         timeZone: preferredTimeZone,

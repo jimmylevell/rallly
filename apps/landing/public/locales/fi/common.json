@@ -16,5 +16,12 @@
   "notFoundDescription": "Emme löytäneet hakemaasi sivua.",
   "goToHome": "Siirry etusivulle",
   "goToApp": "Avaa sovellus",
-  "pricing": "Hinnasto"
+  "pricing": "Hinnasto",
+  "bestDoodleAlternative": "Paras vaihtoehto Doodlelle",
+  "freeSchedulingPoll": "Ilmainen aikataulukysely",
+  "findATime": "Löydä aika",
+  "getStarted": "Aloita tästä",
+  "availabilityPoll": "Kokouskysely",
+  "solutions": "Ratkaisut",
+  "howItWorks": "Näin se toimii"
 }

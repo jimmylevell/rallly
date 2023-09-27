@@ -1,6 +1,7 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
+import { getSubscriptionStatus } from "../utils/auth";
 import { Context } from "./context";
 
 const t = initTRPC.context<Context>().create({
@@ -18,12 +19,41 @@ export const middleware = t.middleware;
 
 export const possiblyPublicProcedure = t.procedure.use(
   middleware(async ({ ctx, next }) => {
-    if (process.env.AUTH_REQUIRED === "true" && ctx.user.isGuest) {
+    // On self-hosted instances, these procedures require login
+    if (ctx.isSelfHosted && ctx.user.isGuest) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
         message: "Login is required",
       });
     }
+    return next();
+  }),
+);
+
+export const proProcedure = t.procedure.use(
+  middleware(async ({ ctx, next }) => {
+    if (ctx.user.isGuest) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Login is required",
+      });
+    }
+
+    if (ctx.isSelfHosted) {
+      // Self-hosted instances don't have paid subscriptions
+      return next();
+    }
+
+    const { active: isPro } = await getSubscriptionStatus(ctx.user.id);
+
+    if (!isPro) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message:
+          "You must have an active paid subscription to perform this action",
+      });
+    }
+
     return next();
   }),
 );

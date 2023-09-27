@@ -1,1 +1,15 @@
-{}
+{
+  "pricing": "Priser",
+  "pricingDescription": "Kom i gang gratis. Kræver ikke login.",
+  "freeForever": "gratis for evigt",
+  "planPro": "Pro",
+  "annualBillingDescription": "pr. måned, faktureres årligt",
+  "monthlyBillingDescription": "pr. måned",
+  "upgrade": "Opgradér",
+  "faq": "Ofte stillede spørgsmål (FAQ)",
+  "canUseFree": "Kan jeg bruge Rallly gratis?",
+  "whyUpgrade": "Hvorfor opgradere?",
+  "howToUpgrade": "Hvordan opgraderer jeg til et betalt abonnement?",
+  "cancelSubscription": "Hvordan annullerer jeg mit abonnement?",
+  "planFree": "Gratis"
+}

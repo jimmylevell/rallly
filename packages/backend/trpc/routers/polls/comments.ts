@@ -1,5 +1,4 @@
 import { prisma } from "@rallly/database";
-import { sendEmail } from "@rallly/emails";
 import { absoluteUrl } from "@rallly/utils";
 import { z } from "zod";
 
@@ -12,11 +11,12 @@ export const comments = router({
     .input(
       z.object({
         pollId: z.string(),
+        hideParticipants: z.boolean().optional(),
       }),
     )
-    .query(async ({ input: { pollId } }) => {
+    .query(async ({ input: { pollId, hideParticipants }, ctx }) => {
       return await prisma.comment.findMany({
-        where: { pollId },
+        where: { pollId, userId: hideParticipants ? ctx.user.id : undefined },
         orderBy: [
           {
             createdAt: "asc",
@@ -81,7 +81,7 @@ export const comments = router({
           { ttl: 0 },
         );
         emailsToSend.push(
-          sendEmail("NewCommentEmail", {
+          ctx.emailClient.sendTemplate("NewCommentEmail", {
             to: email,
             subject: `${authorName} has commented on ${poll.title}`,
             props: {

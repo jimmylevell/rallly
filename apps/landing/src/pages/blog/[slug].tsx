@@ -1,10 +1,12 @@
 import { ArrowLeftIcon } from "@rallly/icons";
+import { absoluteUrl } from "@rallly/utils";
 import { GetStaticPropsContext } from "next";
 import ErrorPage from "next/error";
 import Head from "next/head";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 
 import PostBody from "@/components/blog/post-body";
 import PostHeader from "@/components/blog/post-header";
@@ -28,6 +30,27 @@ const Page: NextPageWithLayout<Props> = ({ post }) => {
 
   return (
     <div>
+      <NextSeo
+        title={post.title}
+        description={post.excerpt}
+        openGraph={{
+          title: post.title,
+          description: post.excerpt,
+          url: absoluteUrl(`/blog/${post.slug}`),
+          images: [
+            {
+              url: absoluteUrl("/api/og-image", {
+                title: post.title,
+                excerpt: post.excerpt,
+              }),
+              width: 1200,
+              height: 630,
+              alt: post.title,
+              type: "image/png",
+            },
+          ],
+        }}
+      />
       <nav className="mb-2">
         <Link
           className="text-muted-foreground hover:text-primary inline-flex items-center gap-x-2 text-sm font-medium"
@@ -39,7 +62,6 @@ const Page: NextPageWithLayout<Props> = ({ post }) => {
       <article>
         <Head>
           <title>{post.title}</title>
-          <meta property="og:image" content={post.ogImage?.url} />
         </Head>
         <PostHeader title={post.title} date={post.date} />
         <PostBody content={post.content} />
@@ -79,9 +101,8 @@ export async function getStaticProps(ctx: GetStaticPropsContext) {
     "date",
     "slug",
     "author",
+    "excerpt",
     "content",
-    "ogImage",
-    "coverImage",
   ]);
   const content = await markdownToHtml(post.content || "");
 

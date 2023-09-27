@@ -16,5 +16,11 @@
   "notFoundDescription": "Die gewünschte Seite konnte nicht gefunden werden.",
   "goToHome": "Zur Startseite",
   "goToApp": "Zur App",
-  "pricing": "Preise"
+  "pricing": "Preise",
+  "bestDoodleAlternative": "Beste Doodle Alternative",
+  "freeSchedulingPoll": "Kostenlose Umfrage zur Terminplanung",
+  "findATime": "Zeit finden",
+  "getStarted": "Los geht's",
+  "availabilityPoll": "Verfügbarkeitsumfrage",
+  "solutions": "Lösungen"
 }

@@ -1,10 +1,11 @@
 import { prisma } from "@rallly/database";
 import { z } from "zod";
 
-import { publicProcedure, router } from "../trpc";
+import { getSubscriptionStatus } from "../../utils/auth";
+import { possiblyPublicProcedure, privateProcedure, router } from "../trpc";
 
 export const user = router({
-  getBilling: publicProcedure.query(async ({ ctx }) => {
+  getBilling: possiblyPublicProcedure.query(async ({ ctx }) => {
     return await prisma.userPaymentData.findUnique({
       select: {
         subscriptionId: true,
@@ -19,7 +20,19 @@ export const user = router({
       },
     });
   }),
-  changeName: publicProcedure
+  subscription: possiblyPublicProcedure.query(
+    async ({ ctx }): Promise<{ legacy?: boolean; active: boolean }> => {
+      if (ctx.user.isGuest) {
+        // guest user can't have an active subscription
+        return {
+          active: false,
+        };
+      }
+
+      return await getSubscriptionStatus(ctx.user.id);
+    },
+  ),
+  changeName: privateProcedure
     .input(
       z.object({
         name: z.string().min(1).max(100),

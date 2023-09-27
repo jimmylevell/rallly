@@ -1,142 +1,134 @@
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  ExpandIcon,
   PlusIcon,
+  ShrinkIcon,
   Users2Icon,
 } from "@rallly/icons";
+import { cn } from "@rallly/ui";
 import { Button } from "@rallly/ui/button";
-import clsx from "clsx";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@rallly/ui/tooltip";
 import { Trans, useTranslation } from "next-i18next";
 import * as React from "react";
-import { useMeasure, useUpdateEffect } from "react-use";
+import { RemoveScroll } from "react-remove-scroll";
+import { useMeasure, useScroll } from "react-use";
 
+import { TimesShownIn } from "@/components/clock";
+import { useVotingForm } from "@/components/poll/voting-form";
 import { usePermissions } from "@/contexts/permissions";
-import { useRole } from "@/contexts/role";
-import { TimePreferences } from "@/contexts/time-preferences";
 
-import { useNewParticipantModal } from "../new-participant-modal";
-import { useParticipants } from "../participants-provider";
+import {
+  useParticipants,
+  useVisibleParticipants,
+} from "../participants-provider";
 import { usePoll } from "../poll-context";
 import ParticipantRow from "./desktop-poll/participant-row";
 import ParticipantRowForm from "./desktop-poll/participant-row-form";
-import { PollContext } from "./desktop-poll/poll-context";
 import PollHeader from "./desktop-poll/poll-header";
-import {
-  useAddParticipantMutation,
-  useUpdateParticipantMutation,
-} from "./mutations";
 
-const minSidebarWidth = 200;
+const useIsOverflowing = <E extends Element | null>(
+  ref: React.RefObject<E>,
+) => {
+  const [isOverflowing, setIsOverflowing] = React.useState(false);
 
-const Poll: React.FunctionComponent = () => {
+  React.useEffect(() => {
+    const checkOverflow = () => {
+      if (ref.current) {
+        const element = ref.current;
+        const overflowX = element.scrollWidth > element.clientWidth;
+        const overflowY = element.scrollHeight > element.clientHeight;
+
+        setIsOverflowing(overflowX || overflowY);
+      }
+    };
+
+    if (ref.current) {
+      const resizeObserver = new ResizeObserver(checkOverflow);
+      resizeObserver.observe(ref.current);
+
+      // Initial check
+      checkOverflow();
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [ref]);
+
+  return isOverflowing;
+};
+
+const DesktopPoll: React.FunctionComponent = () => {
   const { t } = useTranslation();
 
-  const { poll, userAlreadyVoted } = usePoll();
+  const { poll } = usePoll();
 
   const { participants } = useParticipants();
 
-  const [ref, { width }] = useMeasure<HTMLDivElement>();
+  const votingForm = useVotingForm();
 
-  const [editingParticipantId, setEditingParticipantId] = React.useState<
-    string | null
-  >(null);
+  const mode = votingForm.watch("mode");
 
-  const columnWidth = 80;
-
-  const numberOfVisibleColumns = Math.min(
-    poll.options.length,
-    Math.floor((width - minSidebarWidth) / columnWidth),
-  );
-
-  const sidebarWidth = Math.min(
-    width - numberOfVisibleColumns * columnWidth,
-    275,
-  );
-
-  const availableSpace = Math.min(
-    numberOfVisibleColumns * columnWidth,
-    poll.options.length * columnWidth,
-  );
-
-  const [activeOptionId, setActiveOptionId] = React.useState<string | null>(
-    null,
-  );
-
-  const [scrollPosition, setScrollPosition] = React.useState(0);
-
-  const maxScrollPosition =
-    columnWidth * poll.options.length - columnWidth * numberOfVisibleColumns;
+  const [measureRef, { height }] = useMeasure<HTMLDivElement>();
 
   const { canAddNewParticipant } = usePermissions();
 
-  const role = useRole();
-  const [shouldShowNewParticipantForm, setShouldShowNewParticipantForm] =
-    React.useState(
-      canAddNewParticipant && !userAlreadyVoted && role === "participant",
-    );
-
-  const pollWidth = sidebarWidth + poll.options.length * columnWidth;
-  const addParticipant = useAddParticipantMutation();
-
-  useUpdateEffect(() => {
-    if (!canAddNewParticipant) {
-      setShouldShowNewParticipantForm(false);
-    }
-  }, [canAddNewParticipant]);
-
   const goToNextPage = () => {
-    setScrollPosition(
-      Math.min(
-        maxScrollPosition,
-        scrollPosition + numberOfVisibleColumns * columnWidth,
-      ),
-    );
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft += 240;
+    }
+  };
+
+  const [expanded, setExpanded] = React.useState(false);
+
+  const expand = () => {
+    setExpanded(true);
+  };
+
+  const collapse = () => {
+    // enable scrolling on body
+    document.body.style.overflow = "";
+    setExpanded(false);
   };
 
   const goToPreviousPage = () => {
-    setScrollPosition(
-      Math.max(0, scrollPosition - numberOfVisibleColumns * columnWidth),
-    );
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft -= 240;
+    }
   };
 
-  const updateParticipant = useUpdateParticipantMutation();
-  const showNewParticipantModal = useNewParticipantModal();
+  const visibleParticipants = useVisibleParticipants();
+
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const isOverflowing = useIsOverflowing(scrollRef);
+
+  const { x } = useScroll(scrollRef);
+
   return (
-    <PollContext.Provider
-      value={{
-        activeOptionId,
-        setActiveOptionId,
-        scrollPosition,
-        setScrollPosition,
-        columnWidth,
-        sidebarWidth,
-        goToNextPage,
-        goToPreviousPage,
-        numberOfColumns: numberOfVisibleColumns,
-        availableSpace,
-        maxScrollPosition,
-      }}
-    >
+    <div ref={measureRef} style={{ height: expanded ? height : undefined }}>
       <div
-        className={clsx(
-          "relative min-w-full max-w-full duration-300",
-          width === 0 ? "invisible" : "visible",
-        )} // Don't add styles like border, margin, padding – that can mess up the sizing calculations
-        style={{ width: pollWidth }}
-        ref={ref}
+        className={cn(
+          expanded
+            ? "fixed left-0 top-0 z-50 flex h-full w-full items-center justify-center bg-gray-900/25 p-8"
+            : "",
+        )}
       >
-        <div className="flex flex-col overflow-hidden">
-          <div className="flex h-14 shrink-0 items-center justify-between rounded-t-md border-b bg-gradient-to-b from-gray-50 to-gray-100/50 py-3 px-4">
+        <div
+          className={cn(
+            "shadow-huge flex max-h-full flex-col overflow-hidden rounded-md bg-white",
+          )}
+        >
+          <div className="flex h-14 shrink-0 items-center justify-between rounded-t-md border-b bg-gradient-to-b from-gray-50 to-gray-100/50 px-4 py-3">
             <div>
-              {shouldShowNewParticipantForm || editingParticipantId ? (
-                <div className="px-1">
+              {mode !== "view" ? (
+                <div>
                   <Trans
                     t={t}
                     i18nKey="saveInstruction"
                     values={{
-                      action: shouldShowNewParticipantForm
-                        ? t("continue")
-                        : t("save"),
+                      action: mode === "new" ? t("continue") : t("save"),
                     }}
                     components={{ b: <strong /> }}
                   />
@@ -155,131 +147,180 @@ const Poll: React.FunctionComponent = () => {
                       data-testid="add-participant-button"
                       icon={PlusIcon}
                       onClick={() => {
-                        setEditingParticipantId(null);
-                        setShouldShowNewParticipantForm(true);
+                        votingForm.newParticipant();
                       }}
                     />
                   ) : null}
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              <div className="font-semibold">
+            <div className="flex items-center gap-4">
+              <div className="text-sm font-medium">
                 {t("optionCount", { count: poll.options.length })}
               </div>
-              {maxScrollPosition > 0 ? (
+              {isOverflowing || expanded ? (
                 <div className="flex gap-2">
-                  <Button
-                    onClick={goToPreviousPage}
-                    disabled={scrollPosition === 0}
-                  >
-                    <ArrowLeftIcon className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    disabled={scrollPosition === maxScrollPosition}
-                    onClick={() => {
-                      goToNextPage();
-                    }}
-                  >
-                    <ArrowRightIcon className="h-4 w-4" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button disabled={x === 0} onClick={goToPreviousPage}>
+                        <ArrowLeftIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <Trans i18nKey="scrollLeft" defaults="Scroll Left" />
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        disabled={Boolean(
+                          scrollRef.current &&
+                            x + scrollRef.current.offsetWidth >=
+                              scrollRef.current.scrollWidth,
+                        )}
+                        onClick={() => {
+                          goToNextPage();
+                        }}
+                      >
+                        <ArrowRightIcon className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <Trans i18nKey="scrollRight" defaults="Scroll Right" />
+                    </TooltipContent>
+                  </Tooltip>
+                  {expanded ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          icon={ShrinkIcon}
+                          onClick={() => {
+                            collapse();
+                          }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <Trans i18nKey="shrink" defaults="Shrink" />
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          icon={ExpandIcon}
+                          onClick={() => {
+                            expand();
+                          }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <Trans i18nKey="expand" defaults="Expand" />
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               ) : null}
             </div>
           </div>
           {poll.options[0].duration !== 0 ? (
-            <div className="border-b p-3">
-              <TimePreferences />
+            <div className="border-b bg-gray-50 p-3">
+              <TimesShownIn />
             </div>
           ) : null}
-          <div>
-            <div className="flex py-3">
-              <div
-                className="flex shrink-0 items-end pl-4 pr-2 font-medium"
-                style={{ width: sidebarWidth }}
-              >
-                <div className="font-semibold text-gray-800"></div>
-              </div>
-              <PollHeader />
-            </div>
+          <div className="relative flex min-h-0 flex-col">
+            <div
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute bottom-2 left-[240px] top-0 z-30 w-4 border-l bg-gradient-to-r from-gray-800/5 via-transparent to-transparent transition-opacity",
+                x > 0 ? "opacity-100" : "opacity-0",
+              )}
+            />
+            <RemoveScroll
+              enabled={expanded}
+              ref={scrollRef}
+              className={cn(
+                "scrollbar-thin hover:scrollbar-thumb-gray-400 scrollbar-thumb-gray-300 scrollbar-track-gray-100 relative z-10 flex-grow overflow-auto scroll-smooth pb-3 pr-3",
+                expanded ? "" : "max-h-[calc(75vh)]",
+              )}
+            >
+              <table className="w-full table-auto border-separate border-spacing-0 ">
+                <thead>
+                  <PollHeader />
+                </thead>
+                <tbody>
+                  {mode === "new" ? (
+                    <>
+                      <ParticipantRowForm />
+                      <tr aria-hidden="true">
+                        <td
+                          colSpan={poll.options.length + 1}
+                          className="py-2"
+                        />
+                      </tr>
+                    </>
+                  ) : null}
+                  {visibleParticipants.length > 0
+                    ? visibleParticipants.map((participant, i) => {
+                        return (
+                          <ParticipantRow
+                            key={i}
+                            participant={participant}
+                            editMode={
+                              votingForm.watch("mode") === "edit" &&
+                              votingForm.watch("participantId") ===
+                                participant.id
+                            }
+                            onChangeEditMode={(isEditing) => {
+                              if (isEditing) {
+                                votingForm.setEditingParticipantId(
+                                  participant.id,
+                                );
+                              }
+                            }}
+                          />
+                        );
+                      })
+                    : null}
+                </tbody>
+              </table>
+            </RemoveScroll>
           </div>
-          <div>
-            <div>
-              {shouldShowNewParticipantForm && !editingParticipantId ? (
-                <ParticipantRowForm
-                  className="mb-2 shrink-0"
-                  onSubmit={async ({ votes }) => {
-                    showNewParticipantModal({
-                      votes,
-                      onSubmit: () => {
-                        setShouldShowNewParticipantForm(false);
-                      },
-                    });
-                  }}
-                />
-              ) : null}
-              {participants.length > 0 ? (
-                <div className="py-2">
-                  {participants.map((participant, i) => {
-                    return (
-                      <ParticipantRow
-                        key={i}
-                        participant={participant}
-                        editMode={editingParticipantId === participant.id}
-                        onChangeEditMode={(isEditing) => {
-                          if (isEditing) {
-                            setShouldShowNewParticipantForm(false);
-                            setEditingParticipantId(participant.id);
-                          }
-                        }}
-                        onSubmit={async ({ votes }) => {
-                          await updateParticipant.mutateAsync({
-                            participantId: participant.id,
-                            pollId: poll.id,
-                            votes,
-                          });
-                          setEditingParticipantId(null);
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          {shouldShowNewParticipantForm || editingParticipantId ? (
+          {mode !== "view" ? (
             <div className="flex shrink-0 items-center border-t bg-gray-50">
               <div className="flex w-full items-center justify-between gap-3 p-3">
                 <Button
                   onClick={() => {
-                    if (editingParticipantId) {
-                      setEditingParticipantId(null);
-                    } else {
-                      setShouldShowNewParticipantForm(false);
-                    }
+                    votingForm.cancel();
                   }}
                 >
                   {t("cancel")}
                 </Button>
-                <Button
-                  key="submit"
-                  form="participant-row-form"
-                  type="submit"
-                  variant="primary"
-                  loading={
-                    addParticipant.isLoading || updateParticipant.isLoading
-                  }
-                >
-                  {shouldShowNewParticipantForm ? t("continue") : t("save")}
-                </Button>
+                {mode === "new" ? (
+                  <Button
+                    form="voting-form"
+                    type="submit"
+                    variant="primary"
+                    loading={votingForm.formState.isSubmitting}
+                  >
+                    {t("continue")}
+                  </Button>
+                ) : (
+                  <Button
+                    form="voting-form"
+                    type="submit"
+                    variant="primary"
+                    loading={votingForm.formState.isSubmitting}
+                  >
+                    {t("save")}
+                  </Button>
+                )}
               </div>
             </div>
           ) : null}
         </div>
       </div>
-    </PollContext.Provider>
+    </div>
   );
 };
 
-export default React.memo(Poll);
+export default DesktopPoll;

@@ -14,5 +14,13 @@
   "volunteerTranslator": "Помочь с переводом того сайта",
   "notFoundTitle": "404: Не найдено",
   "notFoundDescription": "Мы не можем найти страницу, которую вы искали.",
-  "goToHome": "Вернуться на главную"
+  "goToHome": "Вернуться на главную",
+  "goToApp": "К приложению",
+  "pricing": "Цены",
+  "bestDoodleAlternative": "Лучшая альтернатива Doodle",
+  "freeSchedulingPoll": "Бесплатные опции расписания",
+  "findATime": "Найти время",
+  "getStarted": "Начать",
+  "availabilityPoll": "Опрос доступности",
+  "solutions": "Решения"
 }

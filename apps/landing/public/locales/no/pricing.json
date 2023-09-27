@@ -1,0 +1,17 @@
+{
+  "pricing": "Priser",
+  "pricingDescription": "Kom i gang gratis. Ingen innlogging kreves.",
+  "freeForever": "gratis for alltid",
+  "planPro": "Pro",
+  "annualBillingDescription": "per måned, fakturert årlig",
+  "monthlyBillingDescription": "per måned",
+  "upgrade": "Oppgrader",
+  "faq": "Ofte stilte spørsmål",
+  "canUseFree": "Kan jeg bruke Rallly gratis?",
+  "whyUpgrade": "Hvorfor bør jeg oppgradere?",
+  "howToUpgrade": "Hvordan oppgraderer jeg til et betalt abonnement?",
+  "howToUpgradeAnswer": "For å oppgradere, går du til <a>faktureringsinnstillingene</a> og klikker på <b>Oppgrader</b>.",
+  "cancelSubscription": "Hvordan avslutter jeg abonnementet?",
+  "cancelSubscriptionAnswer": "Du kan avslutte abonnementet ditt når som helst ved å gå til <a>faktureringsinnstillingene</a>. Når du avslutter abonnementet, vil du fortsatt ha tilgang til det betalte abonnementet ditt frem til slutten av faktureringsperioden. Etter dette blir du nedgradert til et gratis abonnement.",
+  "planFree": "Gratis"
+}

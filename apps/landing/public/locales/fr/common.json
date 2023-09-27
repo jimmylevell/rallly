@@ -16,5 +16,11 @@
   "notFoundDescription": "Nous n'avons pas trouvé la page que vous recherchez.",
   "goToHome": "Retourner à la page d'accueil",
   "goToApp": "Accéder à l'application",
-  "pricing": "Tarifs"
+  "pricing": "Tarifs",
+  "bestDoodleAlternative": "Meilleure alternative Doodle",
+  "freeSchedulingPoll": "Outil de planification libre",
+  "findATime": "Trouver un créneau",
+  "getStarted": "Commencez",
+  "availabilityPoll": "Sondage de disponibilité",
+  "solutions": "Solutions"
 }

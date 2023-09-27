@@ -17,15 +17,18 @@ enum TimeFormat {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  name      String
-  email     String    @unique() @db.Citext
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime? @updatedAt @map("updated_at")
-  comments  Comment[]
-  polls     Poll[]
-  watcher   Watcher[]
-  events    Event[]
+  id             String        @id @default(cuid())
+  name           String
+  email          String        @unique() @db.Citext
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime?     @updatedAt @map("updated_at")
+  comments       Comment[]
+  polls          Poll[]
+  watcher        Watcher[]
+  events         Event[]
+  customerId     String?       @map("customer_id")
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String?       @unique @map("subscription_id")
 
   @@map("users")
 }
@@ -52,6 +55,21 @@ model UserPaymentData {
   @@map("user_payment_data")
 }
 
+model Subscription {
+  id            String   @id
+  priceId       String   @map("price_id")
+  active        Boolean
+  currency      String?
+  interval      String?
+  intervalCount Int?     @map("interval_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  periodStart   DateTime @map("period_start")
+  periodEnd     DateTime @map("period_end")
+  user          User?
+
+  @@map("subscriptions")
+}
+
 model UserPreferences {
   userId     String      @id @map("user_id")
   timeZone   String?     @map("time_zone")
@@ -62,32 +80,44 @@ model UserPreferences {
   @@map("user_preferences")
 }
 
+enum ParticipantVisibility {
+  full
+  scoresOnly
+  limited
+
+  @@map("participant_visibility")
+}
+
 model Poll {
-  id               String        @id @unique @map("id")
-  createdAt        DateTime      @default(now()) @map("created_at")
-  updatedAt        DateTime      @updatedAt @map("updated_at")
-  deadline         DateTime?
-  title            String
-  description      String?
-  location         String?
-  user             User?         @relation(fields: [userId], references: [id])
-  userId           String        @map("user_id")
-  votes            Vote[]
-  timeZone         String?       @map("time_zone")
-  options          Option[]
-  participants     Participant[]
-  watchers         Watcher[]
-  demo             Boolean       @default(false)
-  comments         Comment[]
-  legacy           Boolean       @default(false) // @deprecated
-  closed           Boolean       @default(false) // we use this to indicate whether a poll is paused
-  deleted          Boolean       @default(false)
-  deletedAt        DateTime?     @map("deleted_at")
-  touchedAt        DateTime      @default(now()) @map("touched_at")
-  participantUrlId String        @unique @map("participant_url_id")
-  adminUrlId       String        @unique @map("admin_url_id")
-  eventId          String?       @map("event_id")
-  event            Event?
+  id                      String        @id @unique @map("id")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+  deadline                DateTime?
+  title                   String
+  description             String?
+  location                String?
+  user                    User?         @relation(fields: [userId], references: [id])
+  userId                  String        @map("user_id")
+  votes                   Vote[]
+  timeZone                String?       @map("time_zone")
+  options                 Option[]
+  participants            Participant[]
+  watchers                Watcher[]
+  demo                    Boolean       @default(false)
+  comments                Comment[]
+  legacy                  Boolean       @default(false) // @deprecated
+  closed                  Boolean       @default(false) // we use this to indicate whether a poll is paused
+  deleted                 Boolean       @default(false)
+  deletedAt               DateTime?     @map("deleted_at")
+  touchedAt               DateTime      @default(now()) @map("touched_at")
+  participantUrlId        String        @unique @map("participant_url_id")
+  adminUrlId              String        @unique @map("admin_url_id")
+  eventId                 String?       @map("event_id")
+  event                   Event?
+  hideParticipants        Boolean       @default(false) @map("hide_participants")
+  hideScores              Boolean       @default(false) @map("hide_scores")
+  disableComments         Boolean       @default(false) @map("disable_comments")
+  requireParticipantEmail Boolean       @default(false) @map("require_participant_email")
 
   @@index([userId], type: Hash)
   @@map("polls")

@@ -7,8 +7,8 @@ import { DateIcon } from "@/components/date-icon";
 import { ParticipantAvatarBar } from "@/components/participant-avatar-bar";
 import { useParticipants } from "@/components/participants-provider";
 import { PollStatusBadge } from "@/components/poll-status";
-import { TextSummary } from "@/components/text-summary";
 import { Trans } from "@/components/trans";
+import { IfParticipantsVisible } from "@/components/visibility";
 import { usePoll } from "@/contexts/poll";
 import { generateGradient } from "@/utils/color-hash";
 import { useDayjs } from "@/utils/dayjs";
@@ -70,7 +70,7 @@ export const EventCard = () => {
                       : `${adjustTimeZone(
                           poll.event.start,
                           !poll.timeZone,
-                        ).format("LLL")} - ${adjustTimeZone(
+                        ).format("LL LT")} - ${adjustTimeZone(
                           dayjs(poll.event.start).add(
                             poll.event.duration,
                             "minutes",
@@ -88,15 +88,17 @@ export const EventCard = () => {
                 {!poll.event ? (
                   <PollSubheader />
                 ) : (
-                  <div className="mt-4">
-                    <div className="text-muted-foreground mb-2 text-sm">
+                  <div className="mt-4 space-y-2">
+                    <div className="text-muted-foreground text-sm">
                       <Trans
                         i18nKey="attendeeCount"
                         defaults="{count, plural, one {# attendee} other {# attendees}}"
                         values={{ count: attendees.length }}
                       />
                     </div>
-                    <ParticipantAvatarBar participants={attendees} max={10} />
+                    <IfParticipantsVisible>
+                      <ParticipantAvatarBar participants={attendees} max={10} />
+                    </IfParticipantsVisible>
                   </div>
                 )}
               </div>
@@ -107,10 +109,8 @@ export const EventCard = () => {
           {poll.description ? (
             <div className="flex gap-4">
               <TextIcon className="h-4 w-4 shrink-0 translate-y-1" />
-              <div className="border-primary whitespace-pre-line leading-relaxed">
-                <TruncatedLinkify>
-                  <TextSummary text={preventWidows(poll.description)} />
-                </TruncatedLinkify>
+              <div className="whitespace-pre-line leading-relaxed">
+                <TruncatedLinkify>{poll.description}</TruncatedLinkify>
               </div>
             </div>
           ) : null}

@@ -1,7 +1,7 @@
-import { CheckIcon } from "@rallly/icons";
+import { TrendingUpIcon } from "@rallly/icons";
 import {
   BillingPlan,
-  BillingPlanFooter,
+  BillingPlanDescription,
   BillingPlanHeader,
   BillingPlanPeriod,
   BillingPlanPerk,
@@ -10,188 +10,142 @@ import {
   BillingPlanTitle,
 } from "@rallly/ui/billing-plan";
 import { Button } from "@rallly/ui/button";
-import { Label } from "@rallly/ui/label";
-import { Switch } from "@rallly/ui/switch";
-import { useRouter } from "next/router";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@rallly/ui/tabs";
 import React from "react";
 
 import { Trans } from "@/components/trans";
-import { useUser } from "@/components/user-provider";
-import { usePlan } from "@/contexts/plan";
-
-const monthlyPriceUsd = 5;
-const annualPriceUsd = 30;
-
-const basicPlanIdMonthly = process.env
-  .NEXT_PUBLIC_PRO_PLAN_ID_MONTHLY as string;
-
-const basicPlanIdYearly = process.env.NEXT_PUBLIC_PRO_PLAN_ID_YEARLY as string;
+import { UpgradeButton } from "@/components/upgrade-button";
+import { annualPriceUsd, monthlyPriceUsd } from "@/utils/constants";
 
 export const BillingPlans = () => {
-  const { user } = useUser();
-  const router = useRouter();
-  const [isPendingSubscription, setPendingSubscription] = React.useState(false);
-
-  const [isBilledAnnually, setBilledAnnually] = React.useState(true);
-  const plan = usePlan();
-  const isPlus = plan === "paid";
+  const [tab, setTab] = React.useState("yearly");
 
   return (
     <div className="space-y-4">
-      <div>
-        <Label className="mb-4">
-          <Trans i18nKey="subscriptionPlans" defaults="Plans" />
-        </Label>
-        <p className="text-muted-foreground mb-4 text-sm">
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="monthly">
+            <Trans i18nKey="billingPeriodMonthly" />
+          </TabsTrigger>
+          <TabsTrigger value="yearly">
+            <Trans i18nKey="billingPeriodYearly" />
+          </TabsTrigger>
+        </TabsList>
+        <div className="grid gap-4 rounded-md md:grid-cols-2">
+          <BillingPlan>
+            <BillingPlanHeader>
+              <BillingPlanTitle>
+                <Trans i18nKey="planFree" />
+              </BillingPlanTitle>
+              <BillingPlanDescription>
+                <Trans
+                  i18nKey="planFreeDescription"
+                  defaults="For casual users"
+                />
+              </BillingPlanDescription>
+            </BillingPlanHeader>
+            <div>
+              <BillingPlanPrice>$0</BillingPlanPrice>
+              <BillingPlanPeriod>
+                <Trans i18nKey="freeForever" />
+              </BillingPlanPeriod>
+            </div>
+            <hr />
+            <Button disabled className="w-full">
+              <Trans i18nKey="currentPlan" defaults="Current Plan" />
+            </Button>
+            <BillingPlanPerks>
+              <BillingPlanPerk>
+                <Trans
+                  i18nKey="limitedAccess"
+                  defaults="Access to core features"
+                />
+              </BillingPlanPerk>
+              <BillingPlanPerk>
+                <Trans
+                  i18nKey="pollsDeleted"
+                  defaults="Polls are automatically deleted once they become inactive"
+                />
+              </BillingPlanPerk>
+            </BillingPlanPerks>
+          </BillingPlan>
+          <div className="space-y-4 rounded-md border p-4">
+            <div>
+              <h3>
+                <Trans i18nKey="planPro" />
+              </h3>
+              <p className="text-muted-foreground text-sm">
+                <Trans
+                  i18nKey="planProDescription"
+                  defaults="For power users and professionals"
+                />
+              </p>
+            </div>
+            <div className="flex">
+              <TabsContent value="yearly">
+                <BillingPlanPrice
+                  discount={`$${(annualPriceUsd / 12).toFixed(2)}`}
+                >
+                  ${monthlyPriceUsd}
+                </BillingPlanPrice>
+                <BillingPlanPeriod>
+                  <Trans
+                    i18nKey="annualBillingDescription"
+                    defaults="per month, billed annually"
+                  />
+                </BillingPlanPeriod>
+              </TabsContent>
+              <TabsContent value="monthly">
+                <BillingPlanPrice>${monthlyPriceUsd}</BillingPlanPrice>
+                <BillingPlanPeriod>
+                  <Trans
+                    i18nKey="monthlyBillingDescription"
+                    defaults="per month"
+                  />
+                </BillingPlanPeriod>
+              </TabsContent>
+            </div>
+            <hr />
+            <UpgradeButton annual={tab === "yearly"} />
+            <BillingPlanPerks>
+              <BillingPlanPerk pro={true}>
+                <Trans
+                  i18nKey="accessAllFeatures"
+                  defaults="Access all features"
+                />
+              </BillingPlanPerk>
+              <BillingPlanPerk pro={true}>
+                <Trans i18nKey="plan_extendedPollLife" />
+              </BillingPlanPerk>
+              <BillingPlanPerk pro={true}>
+                <Trans
+                  i18nKey="earlyAccess"
+                  defaults="Get early access to new features"
+                />
+              </BillingPlanPerk>
+            </BillingPlanPerks>
+          </div>
+        </div>
+      </Tabs>
+      <div className="rounded-md border border-cyan-200 bg-cyan-50 px-4 py-3 text-cyan-800">
+        <div className="mb-2">
+          <TrendingUpIcon className="text-indigo mr-2 mt-0.5 h-6 w-6 shrink-0" />
+        </div>
+        <div className="mb-2 flex items-center gap-x-2">
+          <h3 className="text-sm">
+            <Trans
+              i18nKey="upgradeNowSaveLater"
+              defaults="Upgrade now, save later"
+            />
+          </h3>
+        </div>
+        <p className="text-sm">
           <Trans
-            i18nKey="subscriptionDescription"
-            defaults="By subscribing, you not only gain access to all features but you are also directly supporting further development of Rallly."
+            i18nKey="earlyAdopterDescription"
+            defaults="As an early adopter, you'll lock in your subscription rate and won't be affected by future price increases."
           />
         </p>
       </div>
-      <div className="flex items-center gap-2.5">
-        <Switch
-          id="annual-switch"
-          checked={isBilledAnnually}
-          onCheckedChange={(checked) => {
-            setBilledAnnually(checked);
-          }}
-        />
-        <Label htmlFor="annual-switch">
-          <Trans
-            i18nKey="annualBilling"
-            defaults="Annual billing (Save {discount}%)"
-            values={{
-              discount: Math.round(100 - (annualPriceUsd / 12 / 5) * 100),
-            }}
-          />
-        </Label>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <BillingPlan>
-          <BillingPlanHeader>
-            <BillingPlanTitle>
-              <Trans i18nKey="planFree" defaults="Free" />
-            </BillingPlanTitle>
-            <BillingPlanPrice>$0</BillingPlanPrice>
-            <BillingPlanPeriod>
-              <Trans i18nKey="freeForever" defaults="free forever" />
-            </BillingPlanPeriod>
-          </BillingPlanHeader>
-          <BillingPlanPerks>
-            <BillingPlanPerk>
-              <Trans i18nKey="plan_unlimitedPolls" defaults="Unlimited polls" />
-            </BillingPlanPerk>
-            <BillingPlanPerk>
-              <Trans
-                i18nKey="plan_unlimitedParticipants"
-                defaults="Unlimited participants"
-              />
-            </BillingPlanPerk>
-          </BillingPlanPerks>
-        </BillingPlan>
-
-        <ProPlan annual={isBilledAnnually}>
-          {!isPlus ? (
-            <Button
-              className="w-full"
-              loading={isPendingSubscription}
-              variant="primary"
-              onClick={() => {
-                if (user.isGuest) {
-                  router.push("/login");
-                } else {
-                  window.Paddle.Checkout.open({
-                    allowQuantity: false,
-                    product: isBilledAnnually
-                      ? basicPlanIdYearly
-                      : basicPlanIdMonthly,
-                    email: user.email,
-                    disableLogout: true,
-                    passthrough: JSON.stringify({ userId: user.id }),
-                    successCallback: () => {
-                      // fetch user till we get the new plan
-                      setPendingSubscription(true);
-                    },
-                  });
-                }
-              }}
-            >
-              <Trans i18nKey="planUpgrade" defaults="Upgrade" />
-            </Button>
-          ) : null}
-        </ProPlan>
-      </div>
     </div>
-  );
-};
-
-const Perk = ({ children }: React.PropsWithChildren) => {
-  return (
-    <li className="flex">
-      <CheckIcon className="mr-2 inline h-4 w-4 translate-y-0.5 -translate-x-0.5 text-green-600" />
-      <span>{children}</span>
-    </li>
-  );
-};
-
-export const ProPlan = ({
-  annual,
-  children,
-}: React.PropsWithChildren<{
-  annual?: boolean;
-}>) => {
-  return (
-    <BillingPlan variant="primary">
-      <BillingPlanHeader>
-        <BillingPlanTitle className="text-primary">
-          <Trans i18nKey="planPro" defaults="Pro" />
-        </BillingPlanTitle>
-        {annual ? (
-          <>
-            <BillingPlanPrice discount={`$${(annualPriceUsd / 12).toFixed(2)}`}>
-              ${monthlyPriceUsd}
-            </BillingPlanPrice>
-            <BillingPlanPeriod>
-              <Trans
-                i18nKey="annualBillingDescription"
-                defaults="per month, billed annually"
-              />
-            </BillingPlanPeriod>
-          </>
-        ) : (
-          <>
-            <BillingPlanPrice>${monthlyPriceUsd}</BillingPlanPrice>
-            <BillingPlanPeriod>
-              <Trans i18nKey="monthlyBillingDescription" defaults="per month" />
-            </BillingPlanPeriod>
-          </>
-        )}
-      </BillingPlanHeader>
-      <BillingPlanPerks>
-        <BillingPlanPerk>
-          <Trans i18nKey="plan_unlimitedPolls" defaults="Unlimited polls" />
-        </BillingPlanPerk>
-        <BillingPlanPerk>
-          <Trans
-            i18nKey="plan_unlimitedParticipants"
-            defaults="Unlimited participants"
-          />
-        </BillingPlanPerk>
-        <Perk>
-          <Trans i18nKey="plan_finalizePolls" defaults="Finalize polls" />
-        </Perk>
-        <BillingPlanPerk>
-          <Trans
-            i18nKey="plan_extendedPollLife"
-            defaults="Extended poll life"
-          />
-        </BillingPlanPerk>
-        <BillingPlanPerk>
-          <Trans i18nKey="plan_prioritySupport" defaults="Priority support" />
-        </BillingPlanPerk>
-      </BillingPlanPerks>
-      <BillingPlanFooter>{children}</BillingPlanFooter>
-    </BillingPlan>
   );
 };

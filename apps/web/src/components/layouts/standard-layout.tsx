@@ -1,23 +1,28 @@
-import { ClockIcon, ListIcon, LogInIcon } from "@rallly/icons";
+import { ListIcon, SparklesIcon } from "@rallly/icons";
 import { cn } from "@rallly/ui";
+import { Button } from "@rallly/ui/button";
 import clsx from "clsx";
-import dayjs from "dayjs";
 import { AnimatePresence, m } from "framer-motion";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
 import { Toaster } from "react-hot-toast";
-import { useInterval } from "react-use";
-import spacetime from "spacetime";
-import soft from "timezone-soft";
 
+import { Clock, ClockPreferences } from "@/components/clock";
 import { Container } from "@/components/container";
+import {
+  FeaturebaseChangelog,
+  FeaturebaseIdentify,
+} from "@/components/featurebase";
 import FeedbackButton from "@/components/feedback";
+import { Logo } from "@/components/logo";
 import { Spinner } from "@/components/spinner";
 import { Trans } from "@/components/trans";
 import { UserDropdown } from "@/components/user-dropdown";
-import { useDayjs } from "@/utils/dayjs";
+import { IfCloudHosted } from "@/contexts/environment";
+import { IfFreeUser } from "@/contexts/plan";
+import { appVersion, isFeedbackEnabled } from "@/utils/constants";
+import { DayjsProvider } from "@/utils/dayjs";
 
 import { IconComponent, NextPageWithLayout } from "../../types";
 import ModalProvider from "../modal/modal-provider";
@@ -28,31 +33,51 @@ const NavMenuItem = ({
   target,
   label,
   icon: Icon,
+  className,
 }: {
   icon: IconComponent;
   href: string;
   target?: string;
   label: React.ReactNode;
+  className?: string;
 }) => {
   const router = useRouter();
   return (
-    <Link
-      target={target}
-      href={href}
-      className={cn(
-        "flex items-center gap-2.5 px-2.5 py-1.5 text-sm font-medium",
-        router.asPath === href
-          ? "text-foreground"
-          : "text-muted-foreground hover:text-foreground active:bg-gray-200/50",
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </Link>
+    <Button variant="ghost" asChild>
+      <Link
+        target={target}
+        href={href}
+        className={cn(
+          router.asPath === href
+            ? "text-foreground"
+            : "text-muted-foreground hover:text-foreground active:bg-gray-200/50",
+          className,
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        {label}
+      </Link>
+    </Button>
   );
 };
 
-const Logo = () => {
+const Upgrade = () => {
+  return (
+    <Button
+      className="hidden sm:inline-flex"
+      variant="primary"
+      size="sm"
+      asChild
+    >
+      <Link href="/settings/billing">
+        <SparklesIcon className="-ml-0.5 h-4 w-4" />
+        <Trans i18nKey="upgrade" defaults="Upgrade" />
+      </Link>
+    </Button>
+  );
+};
+
+const LogoArea = () => {
   const router = useRouter();
   const [isBusy, setIsBusy] = React.useState(false);
   React.useEffect(() => {
@@ -66,24 +91,18 @@ const Logo = () => {
     };
   }, [router.events]);
   return (
-    <div className="relative flex items-center justify-center gap-4 pr-8">
+    <div className="relative flex items-center justify-center gap-x-4">
       <Link
         href="/polls"
         className={clsx(
           "inline-block transition-transform active:translate-y-1",
         )}
       >
-        <Image
-          priority={true}
-          src="/static/logo.svg"
-          width={120}
-          height={22}
-          alt="Rallly"
-        />
+        <Logo size="sm" />
       </Link>
       <div
         className={cn(
-          "pointer-events-none absolute -right-0 flex items-center justify-center text-gray-500 transition-opacity delay-500",
+          "pointer-events-none flex w-5 items-center justify-center text-gray-500 transition-opacity delay-500",
           isBusy ? "opacity-100" : "opacity-0",
         )}
       >
@@ -93,26 +112,8 @@ const Logo = () => {
   );
 };
 
-const Clock = () => {
-  const { timeZone } = useDayjs();
-  const timeZoneDisplayFormat = soft(timeZone)[0];
-  const now = spacetime.now(timeZone);
-  const standardAbbrev = timeZoneDisplayFormat.standard.abbr;
-  const dstAbbrev = timeZoneDisplayFormat.daylight?.abbr;
-  const abbrev = now.isDST() ? dstAbbrev : standardAbbrev;
-  const [time, setTime] = React.useState(new Date());
-
-  useInterval(() => {
-    setTime(new Date());
-  }, 1000);
-
-  return (
-    <NavMenuItem
-      icon={ClockIcon}
-      href="/settings/preferences"
-      label={`${dayjs(time).tz(timeZone).format("LT")} ${abbrev}`}
-    />
-  );
+const Changelog = () => {
+  return <FeaturebaseChangelog />;
 };
 
 const MainNav = () => {
@@ -122,14 +123,14 @@ const MainNav = () => {
         hidden: { y: -56, opacity: 0, height: 0 },
         visible: { y: 0, opacity: 1, height: "auto" },
       }}
-      initial={"hidden"}
+      initial="hidden"
       animate="visible"
-      exit={"hidden"}
+      exit="hidden"
       className="border-b bg-gray-50/50"
     >
-      <Container className="flex h-14 items-center justify-between gap-4">
-        <div className="flex shrink-0">
-          <Logo />
+      <Container className="flex h-14 items-center justify-between gap-x-2.5">
+        <div className="flex shrink-0 gap-x-4">
+          <LogoArea />
           <nav className="hidden gap-x-2 sm:flex">
             <NavMenuItem
               icon={ListIcon}
@@ -138,16 +139,33 @@ const MainNav = () => {
             />
           </nav>
         </div>
-        <div className="flex items-center gap-x-4">
-          <nav className="hidden gap-x-2 sm:flex">
+        <div className="flex items-center gap-x-2.5">
+          <nav className="flex items-center gap-x-1 sm:gap-x-1.5">
+            <IfCloudHosted>
+              <IfFreeUser>
+                <Upgrade />
+              </IfFreeUser>
+            </IfCloudHosted>
             <IfGuest>
-              <NavMenuItem
-                icon={LogInIcon}
-                href="/login"
-                label={<Trans i18nKey="login" defaults="Login" />}
-              />
+              <Button
+                size="sm"
+                variant="ghost"
+                asChild
+                className="hidden sm:flex"
+              >
+                <Link href="/login">
+                  <Trans i18nKey="login" defaults="Login" />
+                </Link>
+              </Button>
             </IfGuest>
-            <Clock />
+            <IfCloudHosted>
+              <Changelog />
+            </IfCloudHosted>
+            <ClockPreferences>
+              <Button size="sm" variant="ghost">
+                <Clock />
+              </Button>
+            </ClockPreferences>
           </nav>
           <UserDropdown />
         </div>
@@ -161,31 +179,50 @@ export const StandardLayout: React.FunctionComponent<{
   hideNav?: boolean;
 }> = ({ children, hideNav, ...rest }) => {
   const key = hideNav ? "no-nav" : "nav";
+
   return (
     <UserProvider>
-      <Toaster />
-      <ModalProvider>
-        <div className="flex min-h-screen flex-col" {...rest}>
-          <AnimatePresence initial={false}>
-            {!hideNav ? <MainNav /> : null}
-          </AnimatePresence>
-          <AnimatePresence mode="wait" initial={false}>
-            <m.div
-              key={key}
-              variants={{
-                hidden: { opacity: 0, y: -56 },
-                visible: { opacity: 1, y: 0 },
-              }}
-              initial="hidden"
-              animate="visible"
-              exit={{ opacity: 0, y: 56 }}
-            >
-              {children}
-            </m.div>
-          </AnimatePresence>
-        </div>
-        {process.env.NEXT_PUBLIC_FEEDBACK_EMAIL ? <FeedbackButton /> : null}
-      </ModalProvider>
+      <DayjsProvider>
+        <Toaster />
+        <ModalProvider>
+          <div className="flex min-h-screen flex-col" {...rest}>
+            <AnimatePresence initial={false}>
+              {!hideNav ? <MainNav /> : null}
+            </AnimatePresence>
+            <AnimatePresence mode="wait" initial={false}>
+              <m.div
+                key={key}
+                variants={{
+                  hidden: { opacity: 0, y: -56 },
+                  visible: { opacity: 1, y: 0 },
+                }}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, y: 56 }}
+              >
+                {children}
+              </m.div>
+            </AnimatePresence>
+            {appVersion ? (
+              <div className="fixed bottom-0 right-0 z-50 rounded-tl-md bg-gray-200/90">
+                <Link
+                  className="px-2 py-1 text-xs tabular-nums tracking-tight"
+                  target="_blank"
+                  href={`https://github.com/lukevella/rallly/releases/${appVersion}`}
+                >
+                  {`${appVersion}`}
+                </Link>
+              </div>
+            ) : null}
+          </div>
+          {isFeedbackEnabled ? (
+            <>
+              <FeaturebaseIdentify />
+              <FeedbackButton />
+            </>
+          ) : null}
+        </ModalProvider>
+      </DayjsProvider>
     </UserProvider>
   );
 };

@@ -2,6 +2,7 @@ import {
   DiscordIcon,
   GithubIcon,
   LanguagesIcon,
+  LinkedinIcon,
   TwitterIcon,
 } from "@rallly/icons";
 import languages from "@rallly/languages";
@@ -52,7 +53,7 @@ export const LanguageSelect = () => {
 const Footer: React.FunctionComponent = () => {
   return (
     <div className="mx-auto space-y-8">
-      <div className="space-y-8 lg:flex lg:space-x-16 lg:space-y-0">
+      <div className="space-y-16 lg:flex lg:space-x-8 lg:space-y-0">
         <div className=" lg:w-2/6">
           <Image
             src="/logo-grayscale.svg"
@@ -60,7 +61,7 @@ const Footer: React.FunctionComponent = () => {
             height={30}
             alt="Rallly"
           />
-          <div className="my-8 text-gray-500">
+          <div className="my-8 text-sm text-gray-500">
             <p className="mb-4 leading-relaxed">
               <Trans
                 i18nKey="footerSponsor"
@@ -105,6 +106,13 @@ const Footer: React.FunctionComponent = () => {
             </Link>
             <Link
               target="_blank"
+              href="https://www.linkedin.com/company/rallly"
+              className="hover:text-primary-600 text-sm text-gray-500 hover:no-underline"
+            >
+              <LinkedinIcon className="h-5 w-5" />
+            </Link>
+            <Link
+              target="_blank"
               href="https://github.com/lukevella/rallly"
               className="hover:text-primary-600 text-sm text-gray-500 hover:no-underline"
             >
@@ -116,7 +124,7 @@ const Footer: React.FunctionComponent = () => {
           <div className="mb-8 font-medium">
             <Trans i18nKey="links" defaults="Links" />
           </div>
-          <ul className="space-y-2">
+          <ul className="grid gap-2 text-sm">
             <li>
               <Link
                 className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
@@ -154,9 +162,100 @@ const Footer: React.FunctionComponent = () => {
         </div>
         <div className="lg:w-1/6">
           <div className="mb-8 font-medium">
+            <Trans i18nKey="solutions" defaults="Solutions" />
+          </div>
+          <ul className="grid gap-2 text-sm">
+            <li>
+              <Link
+                className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
+                href="/best-doodle-alternative"
+              >
+                <Trans
+                  i18nKey="bestDoodleAlternative"
+                  defaults="Best Doodle Alternative"
+                />
+              </Link>
+            </li>
+            <li>
+              <Link
+                className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
+                href="/free-scheduling-poll"
+              >
+                <Trans
+                  i18nKey="freeSchedulingPoll"
+                  defaults="Free Scheduling Poll"
+                />
+              </Link>
+            </li>
+            <li>
+              <Link
+                className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
+                href="/find-a-time"
+              >
+                <Trans i18nKey="findATime" defaults="Find a Time" />
+              </Link>
+            </li>
+            <li>
+              <Link
+                className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
+                href="/availability-poll"
+              >
+                <Trans
+                  i18nKey="availabilityPoll"
+                  defaults="Availability Poll"
+                />
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <div className="lg:w-2/6">
+          <div className="mb-8 font-medium">
+            <Trans i18nKey="language" defaults="Language" />
+          </div>
+          <div className="mb-4">
+            <LanguageSelect />
+          </div>
+          <Link
+            href="https://support.rallly.co/contribute/translations"
+            className="hover:border-primary-600 hover:text-primary-600 inline-flex items-center rounded-md border px-3 py-2 text-xs text-gray-500"
+          >
+            <LanguagesIcon className="mr-2 h-5 w-5" />
+            <Trans i18nKey="volunteerTranslator" /> &rarr;
+          </Link>
+        </div>
+      </div>
+      <div className="flex flex-col justify-between gap-x-8 gap-y-8 sm:flex-row sm:items-end sm:pb-8">
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm leading-loose">
+          <li>
+            <Link
+              href="/privacy-policy"
+              className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
+            >
+              <Trans i18nKey="privacyPolicy" />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/cookie-policy"
+              className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
+            >
+              <Trans i18nKey="cookiePolicy" />
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/terms-of-use"
+              className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
+            >
+              <Trans i18nKey="termsOfUse" />
+            </Link>
+          </li>
+        </ul>
+        <div className="grid gap-2.5">
+          <div className="text-sm tracking-tight sm:text-right">
             <Trans i18nKey="poweredBy" defaults="Powered by" />
           </div>
-          <div className="block space-y-4">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 md:justify-end">
             <div>
               <Link
                 target="_blank"
@@ -186,48 +285,7 @@ const Footer: React.FunctionComponent = () => {
             </div>
           </div>
         </div>
-        <div className="lg:w-2/6">
-          <div className="mb-8 font-medium">
-            <Trans i18nKey="language" defaults="Language" />
-          </div>
-          <div className="mb-4">
-            <LanguageSelect />
-          </div>
-          <Link
-            href="https://support.rallly.co/contribute/translations"
-            className="hover:border-primary-600 hover:text-primary-600 inline-flex items-center rounded-md border px-3 py-2 text-xs text-gray-500"
-          >
-            <LanguagesIcon className="mr-2 h-5 w-5" />
-            <Trans i18nKey="volunteerTranslator" /> &rarr;
-          </Link>
-        </div>
       </div>
-      <ul className="flex gap-4 text-sm leading-loose">
-        <li>
-          <Link
-            href="/privacy-policy"
-            className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
-          >
-            <Trans i18nKey="privacyPolicy" />
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/cookie-policy"
-            className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
-          >
-            <Trans i18nKey="cookiePolicy" />
-          </Link>
-        </li>
-        <li>
-          <Link
-            href="/terms-of-use"
-            className="inline-block font-normal text-gray-500 hover:text-gray-800 hover:no-underline"
-          >
-            <Trans i18nKey="termsOfUse" />
-          </Link>
-        </li>
-      </ul>
     </div>
   );
 };

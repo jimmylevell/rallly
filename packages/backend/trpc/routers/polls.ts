@@ -1,5 +1,4 @@
 import { prisma } from "@rallly/database";
-import { sendEmail } from "@rallly/emails";
 import { absoluteUrl, shortUrl } from "@rallly/utils";
 import { TRPCError } from "@trpc/server";
 import dayjs from "dayjs";
@@ -11,7 +10,12 @@ import { z } from "zod";
 
 import { getTimeZoneAbbreviation } from "../../utils/date";
 import { nanoid } from "../../utils/nanoid";
-import { possiblyPublicProcedure, publicProcedure, router } from "../trpc";
+import {
+  possiblyPublicProcedure,
+  proProcedure,
+  publicProcedure,
+  router,
+} from "../trpc";
 import { comments } from "./polls/comments";
 import { demo } from "./polls/demo";
 import { options } from "./polls/options";
@@ -47,16 +51,14 @@ export const polls = router({
   create: possiblyPublicProcedure
     .input(
       z.object({
-        title: z.string(),
+        title: z.string().trim().min(1),
         timeZone: z.string().optional(),
         location: z.string().optional(),
         description: z.string().optional(),
-        user: z
-          .object({
-            name: z.string(),
-            email: z.string(),
-          })
-          .optional(),
+        hideParticipants: z.boolean().optional(),
+        hideScores: z.boolean().optional(),
+        disableComments: z.boolean().optional(),
+        requireParticipantEmail: z.boolean().optional(),
         options: z
           .object({
             startDate: z.string(),
@@ -70,27 +72,6 @@ export const polls = router({
       const adminToken = nanoid();
       const participantUrlId = nanoid();
       const pollId = nanoid();
-      let email: string;
-      let name: string;
-      if (input.user && ctx.user.isGuest) {
-        email = input.user.email;
-        name = input.user.name;
-      } else {
-        const user = await prisma.user.findUnique({
-          select: { email: true, name: true },
-          where: { id: ctx.user.id },
-        });
-
-        if (!user) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "User not found",
-          });
-        }
-
-        email = user.email;
-        name = user.name;
-      }
 
       const poll = await prisma.poll.create({
         select: {
@@ -133,6 +114,10 @@ export const polls = router({
               })),
             },
           },
+          hideParticipants: input.hideParticipants,
+          disableComments: input.disableComments,
+          hideScores: input.hideScores,
+          requireParticipantEmail: input.requireParticipantEmail,
         },
       });
 
@@ -142,17 +127,24 @@ export const polls = router({
 
       const participantLink = shortUrl(`/invite/${pollId}`);
 
-      if (email && name) {
-        await sendEmail("NewPollEmail", {
-          to: email,
-          subject: `Let's find a date for ${poll.title}`,
-          props: {
-            title: poll.title,
-            name,
-            adminLink: pollLink,
-            participantLink,
-          },
+      if (ctx.user.isGuest === false) {
+        const user = await prisma.user.findUnique({
+          select: { email: true, name: true },
+          where: { id: ctx.user.id },
         });
+
+        if (user) {
+          await ctx.emailClient.sendTemplate("NewPollEmail", {
+            to: user.email,
+            subject: `Let's find a date for ${poll.title}`,
+            props: {
+              title: poll.title,
+              name: user.name,
+              adminLink: pollLink,
+              participantLink,
+            },
+          });
+        }
       }
 
       return { id: poll.id };
@@ -168,6 +160,10 @@ export const polls = router({
         optionsToDelete: z.string().array().optional(),
         optionsToAdd: z.string().array().optional(),
         closed: z.boolean().optional(),
+        hideParticipants: z.boolean().optional(),
+        disableComments: z.boolean().optional(),
+        hideScores: z.boolean().optional(),
+        requireParticipantEmail: z.boolean().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -215,6 +211,10 @@ export const polls = router({
           description: input.description,
           timeZone: input.timeZone,
           closed: input.closed,
+          hideScores: input.hideScores,
+          hideParticipants: input.hideParticipants,
+          disableComments: input.disableComments,
+          requireParticipantEmail: input.requireParticipantEmail,
         },
       });
     }),
@@ -378,8 +378,17 @@ export const polls = router({
           participantUrlId: true,
           closed: true,
           legacy: true,
+          hideParticipants: true,
+          disableComments: true,
+          hideScores: true,
+          requireParticipantEmail: true,
           demo: true,
           options: {
+            select: {
+              id: true,
+              start: true,
+              duration: true,
+            },
             orderBy: {
               start: "asc",
             },
@@ -485,7 +494,7 @@ export const polls = router({
 
     return polls;
   }),
-  book: possiblyPublicProcedure
+  book: proProcedure
     .input(
       z.object({
         pollId: z.string(),
@@ -635,11 +644,9 @@ export const polls = router({
           message: "Failed to generate ics",
         });
       } else {
-        const timeZone = poll.timeZone ?? "UTC";
-        const timeZoneAbbrev = getTimeZoneAbbreviation(
-          eventStart.toDate(),
-          timeZone,
-        );
+        const timeZoneAbbrev = poll.timeZone
+          ? getTimeZoneAbbreviation(eventStart.toDate(), poll.timeZone)
+          : "";
         const date = eventStart.format("dddd, MMMM D, YYYY");
         const day = eventStart.format("D");
         const dow = eventStart.format("ddd");
@@ -675,7 +682,7 @@ export const polls = router({
           });
         }
 
-        const emailToHost = sendEmail("FinalizeHostEmail", {
+        const emailToHost = ctx.emailClient.sendTemplate("FinalizeHostEmail", {
           subject: `Date booked for ${poll.title}`,
           to: poll.user.email,
           props: {
@@ -699,7 +706,7 @@ export const polls = router({
         });
 
         const emailsToParticipants = participantsToEmail.map((p) => {
-          return sendEmail("FinalizeParticipantEmail", {
+          return ctx.emailClient.sendTemplate("FinalizeParticipantEmail", {
             subject: `Date booked for ${poll.title}`,
             to: p.email,
             props: {
@@ -766,6 +773,67 @@ export const polls = router({
           closed: true,
         },
       });
+    }),
+  duplicate: proProcedure
+    .input(
+      z.object({
+        pollId: z.string(),
+        newTitle: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const poll = await prisma.poll.findUnique({
+        where: {
+          id: input.pollId,
+        },
+        select: {
+          location: true,
+          description: true,
+          timeZone: true,
+          hideParticipants: true,
+          hideScores: true,
+          disableComments: true,
+          options: {
+            select: {
+              start: true,
+              duration: true,
+            },
+          },
+        },
+      });
+
+      if (!poll) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Poll not found" });
+      }
+
+      const newPoll = await prisma.poll.create({
+        select: {
+          id: true,
+        },
+        data: {
+          id: nanoid(),
+          title: input.newTitle,
+          userId: ctx.user.id,
+          timeZone: poll.timeZone,
+          location: poll.location,
+          description: poll.description,
+          hideParticipants: poll.hideParticipants,
+          hideScores: poll.hideScores,
+          disableComments: poll.disableComments,
+          adminUrlId: nanoid(),
+          participantUrlId: nanoid(),
+          watchers: {
+            create: {
+              userId: ctx.user.id,
+            },
+          },
+          options: {
+            create: poll.options,
+          },
+        },
+      });
+
+      return newPoll;
     }),
   resume: possiblyPublicProcedure
     .input(

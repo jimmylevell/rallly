@@ -6,7 +6,7 @@
 <br />
 <div align="center">
   
-[![Actions Status](https://github.com/lukevella/rallly/workflows/ci/badge.svg?branch=main)](https://github.com/lukevella/rallly/actions)
+[![Actions Status](https://github.com/lukevella/rallly/workflows/CI/badge.svg?branch=main)](https://github.com/lukevella/rallly/actions)
 [![Crowdin](https://badges.crowdin.net/rallly/localized.svg)](https://crowdin.com/project/rallly)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-orange.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Discord](https://img.shields.io/badge/-Join%20Chat-7289DA?logo=discord&logoColor=white)](https://discord.gg/uzg4ZcHbuM)
@@ -89,13 +89,14 @@ Thank you to our sponsors for making this project possible.
 
 [Become a sponsor &rarr;](https://github.com/sponsors/lukevella)
 
-This project is also supported by the following companies through their open-source sponsorships.
+And thank you to these companies for sponsoring and showing support for this project.
 
-<a href="https://appwrite.io"><img src="./assets/images/appwrite.svg" alt="appwrite" height="30" /></a>
+<a href="https://appwrite.io?utm_source=rallly"><img src="./assets/images/appwrite.svg" alt="appwrite" height="24" /></a>
 &nbsp;&nbsp;&nbsp;
-<a href="https://vercel.com/?utm_source=rallly&utm_campaign=oss"><img src="./apps/landing/public/vercel-logotype-dark.svg" alt="Powered by Vercel" height="30" /></a>
+<a href="https://vercel.com/?utm_source=rallly&utm_campaign=oss"><img src="./apps/landing/public/vercel-logotype-dark.svg" alt="Powered by Vercel" height="24" /></a>
 &nbsp;&nbsp;&nbsp;
-<a href="https://m.do.co/c/f91efc9c9e50"><img src="./apps/landing/public/digitalocean.svg" alt="Digital Ocean" height="30" /></a>
+<a href="https://m.do.co/c/f91efc9c9e50"><img src="./apps/landing/public/digitalocean.svg" alt="Digital Ocean" height="24" /></a>
 &nbsp;&nbsp;&nbsp;
-<a href="https://sentry.io"><img src="./apps/landing/public/sentry.svg" alt="Sentry" height="30" /></a>&nbsp;&nbsp;&nbsp;
-<a href="https://cloudron.io"><img src="./assets/images/cloudron-logo.svg" alt="Cloudron" height="36"></a>
+<a href="https://sentry.io?utm_source=rallly"><img src="./apps/landing/public/sentry.svg" alt="Sentry" height="24" /></a>&nbsp;&nbsp;&nbsp;
+<a href="https://cloudron.io?utm_source=rallly"><img src="./assets/images/cloudron-logo.svg" alt="Cloudron" height="32"></a>&nbsp;&nbsp;&nbsp;
+<a href="https://featurebase.app?utm_source=rallly"><img src="./assets/images/featurebase.svg" alt="Featurebase" height="30"></a>

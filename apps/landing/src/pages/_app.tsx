@@ -11,8 +11,9 @@ import { NextPage } from "next";
 import { AppProps } from "next/app";
 import { Inter } from "next/font/google";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { appWithTranslation } from "next-i18next";
-import { DefaultSeo } from "next-seo";
+import { DefaultSeo, SoftwareAppJsonLd } from "next-seo";
 import React from "react";
 
 import * as nextI18nNextConfig from "../../next-i18next.config.js";
@@ -34,6 +35,7 @@ type AppPropsWithLayout = AppProps<PageProps> & {
 };
 
 const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
+  const router = useRouter();
   React.useEffect(() => {
     if (process.env.NEXT_PUBLIC_ENABLE_ANALYTICS) {
       // calling inject directly to avoid having this run for self-hosted instances
@@ -41,15 +43,25 @@ const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
     }
   }, []);
 
+  const canonicalUrl = React.useMemo(() => {
+    const path = router.asPath === "/" ? "" : router.asPath;
+    if (router.locale === router.defaultLocale) {
+      return absoluteUrl(path);
+    } else {
+      return absoluteUrl(`/${router.locale}${path}`);
+    }
+  }, [router.defaultLocale, router.locale, router.asPath]);
+
   const getLayout = Component.getLayout ?? ((page) => page);
 
   return (
     <LazyMotion features={domMax}>
       <DefaultSeo
+        canonical={canonicalUrl}
         openGraph={{
           siteName: "Rallly",
           type: "website",
-          url: absoluteUrl(),
+          url: canonicalUrl,
           images: [
             {
               url: absoluteUrl("/og-image-1200.png"),
@@ -63,6 +75,25 @@ const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
         facebook={{
           appId: "920386682263077",
         }}
+        twitter={{
+          handle: "@imlukevella",
+          site: "@ralllyco",
+          cardType: "summary_large_image",
+        }}
+      />
+      <SoftwareAppJsonLd
+        name="Rallly"
+        aggregateRating={{
+          ratingValue: "4.2",
+          bestRating: "5",
+          worstRating: "0",
+          ratingCount: "6",
+        }}
+        price="0"
+        priceCurrency="USD"
+        operatingSystem="All"
+        applicationCategory="Scheduling"
+        description="Group scheduling made easy. Create polls, send links, and get feedback from your participants in seconds."
       />
       <Head>
         <meta
