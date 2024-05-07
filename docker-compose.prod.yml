@@ -4,6 +4,7 @@ services:
     image: ghcr.io/jimmylevell/rally/rally:latest
     networks:
       - traefik-public
+      - levell
     environment:
       - DATABASE_URL=DOCKER-SECRET->DATABASE_URL_RALLY
       - NEXT_PUBLIC_BASE_URL=https://rally.app.levell.ch
