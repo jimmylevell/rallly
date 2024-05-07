@@ -52,6 +52,8 @@ COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
+RUN sed -i "s/const hostname = process\.env\.HOSTNAME || '0\.0\.0\.0'/const hostname = '0\.0\.0\.0'/g" apps/web/server.js
+
 ARG SELF_HOSTED
 ENV NEXT_PUBLIC_SELF_HOSTED=$SELF_HOSTED
 
