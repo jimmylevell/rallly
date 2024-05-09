@@ -22,11 +22,14 @@ ARG APP_VERSION
 ENV NEXT_PUBLIC_APP_VERSION=$APP_VERSION
 
 ARG SELF_HOSTED
-ENV NEXT_PUBLIC_SELF_HOSTED=$SELF_HOSTED
+#ENV NEXT_PUBLIC_SELF_HOSTED=$SELF_HOSTED
+ENV NEXT_PUBLIC_SELF_HOSTED=true
 
 RUN yarn build
 
 FROM node:18 AS runner
+
+RUN apt-get update && apt-get install -y dos2unix
 
 WORKDIR /app
 
@@ -40,6 +43,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts/docker-start.sh ./
 COPY --from=builder --chown=nextjs:nodejs /app/scripts/set_env_secrets.sh ./
 COPY --from=builder --chown=nextjs:nodejs /app/packages/database/prisma ./prisma
 
+USER root
+RUN dos2unix docker-start.sh
+RUN chmod +x docker-start.sh
+USER nextjs
+
 COPY --from=installer /app/apps/web/next.config.js .
 COPY --from=installer /app/apps/web/package.json .
 
@@ -48,14 +56,14 @@ EXPOSE 3000
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
-#COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
 
-#RUN sed -i "s/const hostname = process\.env\.HOSTNAME || '0\.0\.0\.0'/const hostname = '0\.0\.0\.0'/g" apps/web/server.js
+RUN sed -i "s/const hostname = process\.env\.HOSTNAME || '0\.0\.0\.0'/const hostname = '0\.0\.0\.0'/g" apps/web/server.js
 
 ARG SELF_HOSTED
 ENV NEXT_PUBLIC_SELF_HOSTED=$SELF_HOSTED
 ENV HOSTNAME=0.0.0.0
 
-CMD ["./docker-start.sh"]
+CMD ["/app/docker-start.sh"]
