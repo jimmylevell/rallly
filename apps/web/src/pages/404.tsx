@@ -1,11 +1,10 @@
-import { FileSearchIcon } from "@rallly/icons";
+import { FileSearchIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import React from "react";
 
 import ErrorPage from "@/components/error-page";
-import { getStandardLayout } from "@/components/layouts/standard-layout";
 import { NextPageWithLayout } from "@/types";
-import { withPageTranslations } from "@/utils/with-page-translations";
+import { getStaticTranslations } from "@/utils/with-page-translations";
 
 const Custom404: NextPageWithLayout = () => {
   const { t } = useTranslation();
@@ -18,8 +17,6 @@ const Custom404: NextPageWithLayout = () => {
   );
 };
 
-Custom404.getLayout = getStandardLayout;
-
-export const getStaticProps = withPageTranslations();
+export const getStaticProps = getStaticTranslations;
 
 export default Custom404;

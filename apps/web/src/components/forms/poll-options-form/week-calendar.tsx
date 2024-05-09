@@ -1,7 +1,10 @@
-import { XIcon } from "@rallly/icons";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import "./rbc-overrides.css";
+
 import dayjs from "dayjs";
+import { XIcon } from "lucide-react";
 import React from "react";
-import { Calendar } from "react-big-calendar";
+import { Calendar, CalendarProps } from "react-big-calendar";
 import { createBreakpoint } from "react-use";
 
 import { getDuration } from "../../../utils/date-time-utils";
@@ -13,6 +16,12 @@ import { formatDateWithoutTz } from "./utils";
 const localizer = dayjsLocalizer(dayjs);
 
 const useDevice = createBreakpoint({ desktop: 720, mobile: 360 });
+
+/**
+ * Not sure what's wrong with the type definitions for react-big-calendar but it's not working properly.
+ * This is a temporary fix that overrides their types which ideally we wouldn't have to do.
+ */
+const CalendarTempFix = Calendar as React.ComponentType<CalendarProps>;
 
 const WeekCalendar: React.FunctionComponent<DateTimePickerProps> = ({
   options,
@@ -33,7 +42,7 @@ const WeekCalendar: React.FunctionComponent<DateTimePickerProps> = ({
 
   return (
     <div className="relative flex h-[600px]">
-      <Calendar
+      <CalendarTempFix
         className="absolute inset-0"
         events={options.map((option) => {
           if (option.type === "date") {
@@ -58,6 +67,7 @@ const WeekCalendar: React.FunctionComponent<DateTimePickerProps> = ({
               (option) =>
                 !(
                   option.type === "timeSlot" &&
+                  event.start &&
                   option.start === formatDateWithoutTz(event.start) &&
                   event.end &&
                   option.end === formatDateWithoutTz(event.end)
@@ -98,8 +108,8 @@ const WeekCalendar: React.FunctionComponent<DateTimePickerProps> = ({
                   width: `calc(${props.style?.width}%)`,
                 }}
               >
-                <div className="absolute top-1.5 right-1.5 flex justify-end opacity-0 group-hover:opacity-100">
-                  <XIcon className="h-3 w-3" />
+                <div className="absolute right-1.5 top-1.5 flex justify-end opacity-0 group-hover:opacity-100">
+                  <XIcon className="size-3" />
                 </div>
                 <div>
                   <div className="font-semibold">{start.format("LT")}</div>

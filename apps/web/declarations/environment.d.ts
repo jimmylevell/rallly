@@ -10,10 +10,6 @@ declare global {
        */
       NODE_ENV: "development" | "production";
       /**
-       * Set to "true" to take users straight to app instead of landing page
-       */
-      DISABLE_LANDING_PAGE?: string;
-      /**
        * Must be 32 characters long
        */
       SECRET_PASSWORD: string;
@@ -69,6 +65,22 @@ declare global {
        */
       EMAIL_PROVIDER?: "smtp" | "ses";
       /**
+       * Name of the oidc provider
+       */
+      OIDC_NAME?: string;
+      /**
+       * URL of the oidc provider .well-known/openid-configuration endpoint
+       */
+      OIDC_DISCOVERY_URL?: string;
+      /**
+       * Client ID of the oidc provider
+       */
+      OIDC_CLIENT_ID?: string;
+      /**
+       * Client secret of the oidc provider
+       */
+      OIDC_CLIENT_SECRET?: string;
+      /**
        * AWS access key ID
        */
       AWS_ACCESS_KEY_ID?: string;
@@ -84,10 +96,6 @@ declare global {
        * The app version just for reference
        */
       NEXT_PUBLIC_APP_VERSION?: string;
-      /**
-       * "true" to enable finalization of polls
-       */
-      NEXT_PUBLIC_ENABLE_FINALIZATION?: string;
     }
   }
 }

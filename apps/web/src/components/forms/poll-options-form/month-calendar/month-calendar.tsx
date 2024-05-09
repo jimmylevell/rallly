@@ -1,12 +1,3 @@
-import {
-  CalendarIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MoreHorizontalIcon,
-  PlusIcon,
-  SparklesIcon,
-  XIcon,
-} from "@rallly/icons";
 import { cn } from "@rallly/ui";
 import { Button } from "@rallly/ui/button";
 import {
@@ -20,13 +11,25 @@ import {
 import { Switch } from "@rallly/ui/switch";
 import clsx from "clsx";
 import dayjs from "dayjs";
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MoreHorizontalIcon,
+  PlusIcon,
+  SparklesIcon,
+  XIcon,
+} from "lucide-react";
 import { useTranslation } from "next-i18next";
 import * as React from "react";
+import { useFormContext } from "react-hook-form";
 
+import { NewEventData } from "@/components/forms";
 import { Trans } from "@/components/trans";
 
 import {
   expectTimeOption,
+  getBrowserTimeZone,
   getDateProps,
   removeAllOptionsForDay,
 } from "../../../../utils/date-time-utils";
@@ -48,6 +51,8 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
 }) => {
   const { t } = useTranslation();
   const isTimedEvent = options.some((option) => option.type === "timeSlot");
+
+  const form = useFormContext<NewEventData>();
 
   const optionsByDay = React.useMemo(() => {
     const res: Record<
@@ -90,7 +95,7 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
 
   return (
     <div className="overflow-hidden md:flex">
-      <div className="border-b p-3 sm:p-4 md:w-[400px] md:border-b-0 md:border-r">
+      <div className="shrink-0 border-b p-3 sm:p-4 md:w-[380px] md:border-b-0 md:border-r">
         <div>
           <div className="flex w-full flex-col">
             <div className="mb-3 flex items-center justify-center space-x-4">
@@ -221,6 +226,7 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
                 checked={isTimedEvent}
                 onCheckedChange={(checked) => {
                   if (checked) {
+                    form.setValue("timeZone", getBrowserTimeZone());
                     // convert dates to time slots
                     onChange(
                       options.map<DateTimeOption>((option) => {
@@ -242,6 +248,7 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
                       }),
                     );
                   } else {
+                    form.setValue("timeZone", "");
                     onChange(
                       datepicker.selection.map((date) => ({
                         type: "date",
@@ -254,7 +261,7 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
             </div>
           </div>
         </div>
-        <div className="max-h-[calc(100vh-400px)] min-h-0 grow overflow-auto">
+        <div className="min-h-0 grow overflow-auto">
           {isTimedEvent ? (
             <div className="divide-y">
               {Object.keys(optionsByDay)
@@ -264,13 +271,11 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
                   return (
                     <div
                       key={dateString}
-                      className="space-y-3 p-3 sm:flex sm:space-x-4 sm:space-y-0 sm:p-4"
+                      className="space-y-3 p-3 sm:flex sm:items-start sm:space-x-4 sm:space-y-0 sm:p-4"
                     >
-                      <div>
-                        <DateCard
-                          {...getDateProps(new Date(dateString + "T12:00:00"))}
-                        />
-                      </div>
+                      <DateCard
+                        {...getDateProps(new Date(dateString + "T12:00:00"))}
+                      />
                       <div className="grow space-y-3">
                         {optionsForDay.map(({ option, index }) => {
                           if (option.type === "date") {
@@ -422,7 +427,7 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
                                   onChange(newOptions);
                                 }}
                               >
-                                <SparklesIcon className="mr-2 h-4 w-4" />
+                                <SparklesIcon className="mr-2 size-4" />
                                 <Trans i18nKey="applyToAllDates" />
                               </DropdownMenuItem>
                               <DropdownMenuItem
@@ -435,7 +440,7 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
                                   );
                                 }}
                               >
-                                <XIcon className="mr-2 h-4 w-4" />
+                                <XIcon className="mr-2 size-4" />
                                 <Trans i18nKey="deleteDate" />
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -447,7 +452,7 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
                 })}
             </div>
           ) : datepicker.selection.length ? (
-            <div className="grid grid-cols-[repeat(auto-fill,54px)] gap-3 p-3 sm:gap-4 sm:p-4">
+            <div className="flex flex-wrap gap-3 p-3 sm:gap-4 sm:p-4">
               {datepicker.selection
                 .sort((a, b) => a.getTime() - b.getTime())
                 .map((selectedDate, i) => {
@@ -455,18 +460,18 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
                     <DateCard
                       key={i}
                       {...getDateProps(selectedDate)}
-                      annotation={
-                        <CompactButton
-                          icon={XIcon}
-                          onClick={() => {
-                            // TODO (Luke Vella) [2022-03-19]: Find cleaner way to manage this state
-                            // Quite tedious right now to remove a single element
-                            onChange(
-                              removeAllOptionsForDay(options, selectedDate),
-                            );
-                          }}
-                        />
-                      }
+                      // annotation={
+                      //   <CompactButton
+                      //     icon={XIcon}
+                      //     onClick={() => {
+                      //       // TODO (Luke Vella) [2022-03-19]: Find cleaner way to manage this state
+                      //       // Quite tedious right now to remove a single element
+                      //       onChange(
+                      //         removeAllOptionsForDay(options, selectedDate),
+                      //       );
+                      //     }}
+                      //   />
+                      // }
                     />
                   );
                 })}
@@ -474,7 +479,7 @@ const MonthCalendar: React.FunctionComponent<DateTimePickerProps> = ({
           ) : (
             <div className="flex h-full items-center justify-center py-12">
               <div className="text-center font-medium text-gray-400">
-                <CalendarIcon className="mb-2 inline-block h-12 w-12" />
+                <CalendarIcon className="mb-2 inline-block size-12" />
                 <div>{t("noDatesSelected")}</div>
               </div>
             </div>

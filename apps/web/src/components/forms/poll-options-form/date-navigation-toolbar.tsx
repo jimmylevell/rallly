@@ -1,5 +1,5 @@
-import { ChevronLeftIcon, ChevronRightIcon } from "@rallly/icons";
 import { Button } from "@rallly/ui/button";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import * as React from "react";
 
@@ -24,11 +24,11 @@ const DateNavigationToolbar: React.FunctionComponent<
       <div className="flex items-center space-x-2">
         <div className="flex items-center gap-x-2">
           <Button type="button" onClick={onPrevious}>
-            <ChevronLeftIcon className="h-4 w-4" />
+            <ChevronLeftIcon className="size-4" />
           </Button>
           <Button onClick={onToday}>{t("today")}</Button>
           <Button onClick={onNext}>
-            <ChevronRightIcon className="h-4 w-4" />
+            <ChevronRightIcon className="size-4" />
           </Button>
         </div>
       </div>

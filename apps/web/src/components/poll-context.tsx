@@ -1,11 +1,12 @@
 import { Participant, VoteType } from "@rallly/database";
-import { TrashIcon } from "@rallly/icons";
+import dayjs from "dayjs";
 import { keyBy } from "lodash";
+import { TrashIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import React from "react";
 
 import {
-  decodeOptions,
+  getDuration,
   ParsedDateOption,
   ParsedTimeSlotOption,
 } from "@/utils/date-time-utils";
@@ -141,7 +142,7 @@ export const PollContextProvider: React.FunctionComponent<{
   );
 };
 
-const OptionsContext = React.createContext<
+type OptionsContextValue =
   | {
       pollType: "date";
       options: ParsedDateOption[];
@@ -149,8 +150,9 @@ const OptionsContext = React.createContext<
   | {
       pollType: "timeSlot";
       options: ParsedTimeSlotOption[];
-    }
->({
+    };
+
+const OptionsContext = React.createContext<OptionsContextValue>({
   pollType: "date",
   options: [],
 });
@@ -160,17 +162,77 @@ export const useOptions = () => {
   return context;
 };
 
+function createOptionsContextValue(
+  pollOptions: { id: string; startTime: Date; duration: number }[],
+  targetTimeZone: string,
+  sourceTimeZone: string | null,
+): OptionsContextValue {
+  if (pollOptions[0].duration > 0) {
+    return {
+      pollType: "timeSlot",
+      options: pollOptions.map((option) => {
+        function adjustTimeZone(date: Date) {
+          if (sourceTimeZone) {
+            return dayjs(date).tz(targetTimeZone);
+          }
+          return dayjs(date).utc();
+        }
+        const localStartTime = adjustTimeZone(option.startTime);
+
+        // for some reason, dayjs requires us to do timezone conversion at the end
+        const localEndTime = adjustTimeZone(
+          dayjs(option.startTime).add(option.duration, "minute").toDate(),
+        );
+
+        return {
+          optionId: option.id,
+          type: "timeSlot",
+          startTime: localStartTime.format("LT"),
+          endTime: localEndTime.format("LT"),
+          duration: getDuration(localStartTime, localEndTime),
+          month: localStartTime.format("MMM"),
+          day: localStartTime.format("D"),
+          dow: localStartTime.format("ddd"),
+          year: localStartTime.format("YYYY"),
+        } satisfies ParsedTimeSlotOption;
+      }),
+    };
+  } else {
+    return {
+      pollType: "date",
+      options: pollOptions.map((option) => {
+        const localTime = sourceTimeZone
+          ? dayjs(option.startTime).tz(targetTimeZone)
+          : dayjs(option.startTime).utc();
+
+        return {
+          optionId: option.id,
+          type: "date",
+          month: localTime.format("MMM"),
+          day: localTime.format("D"),
+          dow: localTime.format("ddd"),
+          year: localTime.format("YYYY"),
+        } satisfies ParsedDateOption;
+      }),
+    };
+  }
+}
+
 export const OptionsProvider = (props: React.PropsWithChildren) => {
   const { poll } = usePoll();
   const { timeZone: targetTimeZone, timeFormat } = useDayjs();
-  const parsedDateOptions = decodeOptions(
-    poll.options,
-    poll.timeZone,
-    targetTimeZone,
-    timeFormat,
-  );
+
+  const options = React.useMemo(() => {
+    return createOptionsContextValue(
+      poll.options,
+      targetTimeZone,
+      poll.timeZone,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poll.options, poll.timeZone, targetTimeZone, timeFormat]);
+
   return (
-    <OptionsContext.Provider value={parsedDateOptions}>
+    <OptionsContext.Provider value={options}>
       {props.children}
     </OptionsContext.Provider>
   );

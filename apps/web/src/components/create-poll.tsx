@@ -1,4 +1,4 @@
-import { trpc } from "@rallly/backend";
+"use client";
 import { Button } from "@rallly/ui/button";
 import {
   Card,
@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@rallly/ui/card";
 import { Form } from "@rallly/ui/form";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { useForm } from "react-hook-form";
 import useFormPersist from "react-hook-form-persist";
@@ -16,7 +16,9 @@ import { useUnmount } from "react-use";
 
 import { PollSettingsForm } from "@/components/forms/poll-settings";
 import { Trans } from "@/components/trans";
+import { setCookie } from "@/utils/cookies";
 import { usePostHog } from "@/utils/posthog";
+import { trpc } from "@/utils/trpc/client";
 
 import { NewEventData, PollDetailsForm, PollOptionsForm } from "./forms";
 
@@ -60,13 +62,17 @@ export const CreatePoll: React.FunctionComponent = () => {
   useUnmount(clear);
 
   const posthog = usePostHog();
-  const queryClient = trpc.useContext();
-  const createPoll = trpc.polls.create.useMutation();
+  const queryClient = trpc.useUtils();
+  const createPoll = trpc.polls.create.useMutation({
+    networkMode: "always",
+    onSuccess: () => {
+      setCookie("new-poll", "1");
+    },
+  });
 
   return (
     <Form {...form}>
       <form
-        className="pb-16"
         onSubmit={form.handleSubmit(async (formData) => {
           const title = required(formData?.title);
 
@@ -99,7 +105,7 @@ export const CreatePoll: React.FunctionComponent = () => {
           );
         })}
       >
-        <div className="mx-auto max-w-4xl space-y-4 p-2 sm:p-8">
+        <div className="mx-auto max-w-4xl space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>

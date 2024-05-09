@@ -1,5 +1,6 @@
+"use client";
+
 import { SelectProps } from "@radix-ui/react-select";
-import { CheckIcon, ChevronDownIcon, GlobeIcon } from "@rallly/icons";
 import { cn } from "@rallly/ui";
 import {
   Command,
@@ -7,23 +8,16 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@rallly/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@rallly/ui/popover";
-import { CommandList } from "cmdk";
 import dayjs from "dayjs";
+import { CheckIcon, ChevronDownIcon, GlobeIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import React from "react";
 
 import { Trans } from "@/components/trans";
-
-import timeZones from "./time-zones.json";
-
-const options = Object.entries(timeZones).map(([value, label]) => ({
-  value,
-  label,
-}));
-
-export { timeZones };
+import { groupedTimeZones } from "@/utils/grouped-time-zone";
 
 interface TimeZoneCommandProps {
   value?: string;
@@ -39,40 +33,37 @@ export const TimeZoneCommand = ({ onSelect, value }: TimeZoneCommandProps) => {
           defaultValue: "Search…",
         })}
       />
-      <CommandList className="max-h-[300px] max-w-[var(--radix-popover-content-available-width)] overflow-y-auto">
+      <CommandList className="max-h-[300px] w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-content-available-width)] overflow-y-auto">
         <CommandEmpty>
           <Trans
             i18nKey="timeZoneSelect__noOption"
             defaults="No option found"
           />
         </CommandEmpty>
-        <CommandGroup>
-          {options.map((option) => {
-            const min = dayjs().tz(option.value).utcOffset();
-            const hr =
-              `${(min / 60) ^ 0}:` +
-              (min % 60 === 0 ? "00" : Math.abs(min % 60));
-            const offset = `GMT${hr.includes("-") ? hr : `+${hr}`}`;
-            return (
-              <CommandItem
-                key={option.value}
-                onSelect={() => onSelect?.(option.value)}
-                className="flex min-w-0 gap-x-2.5"
-              >
-                <CheckIcon
-                  className={cn(
-                    "h-4 w-4 shrink-0",
-                    value === option.value ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                <span className="min-w-0 grow truncate">{option.label}</span>
-                <span className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                  {offset}
-                </span>
-              </CommandItem>
-            );
-          })}
-        </CommandGroup>
+        {Object.entries(groupedTimeZones).map(([region, timeZones]) => (
+          <CommandGroup heading={region} key={region}>
+            {timeZones.map(({ timezone, city }) => {
+              return (
+                <CommandItem
+                  key={timezone}
+                  onSelect={() => onSelect?.(timezone)}
+                  className="flex min-w-0 gap-x-2.5"
+                >
+                  <CheckIcon
+                    className={cn(
+                      "size-4 shrink-0",
+                      value === timezone ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <span className="min-w-0 grow truncate">{city}</span>
+                  <span className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                    {dayjs().tz(timezone).format("LT")}
+                  </span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ))}
       </CommandList>
     </Command>
   );
@@ -95,10 +86,10 @@ export const TimeZoneSelect = React.forwardRef<HTMLButtonElement, SelectProps>(
             aria-controls={popoverContentId}
             className="bg-input-background flex h-9 w-full min-w-0 items-center gap-x-1.5 rounded-md border px-2 py-2 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <GlobeIcon className="h-4 w-4" />
+            <GlobeIcon className="size-4" />
             <span className="grow truncate text-left">
               {value ? (
-                options.find((option) => option.value === value)?.label
+                value.replaceAll("_", " ")
               ) : (
                 <Trans
                   i18nKey="timeZoneSelect__defaultValue"
@@ -106,7 +97,7 @@ export const TimeZoneSelect = React.forwardRef<HTMLButtonElement, SelectProps>(
                 />
               )}
             </span>
-            <ChevronDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
           </button>
         </PopoverTrigger>
         <PopoverContent

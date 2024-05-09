@@ -2,9 +2,9 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 
 import { getSubscriptionStatus } from "../utils/auth";
-import { Context } from "./context";
+import { TRPCContext } from "./context";
 
-const t = initTRPC.context<Context>().create({
+const t = initTRPC.context<TRPCContext>().create({
   transformer: superjson,
   errorFormatter({ shape }) {
     return shape;

@@ -1,4 +1,3 @@
-import { trpc } from "@rallly/backend";
 import { TimeFormat } from "@rallly/database";
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
@@ -12,11 +11,15 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import timezone from "dayjs/plugin/timezone";
 import updateLocale from "dayjs/plugin/updateLocale";
 import utc from "dayjs/plugin/utc";
-import { useRouter } from "next/router";
+import { useParams } from "next/navigation";
 import * as React from "react";
 import { useAsync } from "react-use";
 
-import { getBrowserTimeZone } from "@/utils/date-time-utils";
+import { usePreferences } from "@/contexts/preferences";
+import {
+  getBrowserTimeZone,
+  resolveGeographicTimeZone,
+} from "@/utils/date-time-utils";
 
 import { useRequiredContext } from "../components/use-required-context";
 
@@ -28,6 +31,11 @@ const dayjsLocales: Record<
     import: () => Promise<ILocale>;
   }
 > = {
+  eu: {
+    weekStart: 1,
+    timeFormat: "hours24",
+    import: () => import("dayjs/locale/eu"),
+  },
   en: {
     weekStart: 1,
     timeFormat: "hours12",
@@ -133,6 +141,11 @@ const dayjsLocales: Record<
     timeFormat: "hours24",
     import: () => import("dayjs/locale/zh"),
   },
+  "zh-Hant": {
+    weekStart: 0,
+    timeFormat: "hours24",
+    import: () => import("dayjs/locale/zh-tw"),
+  },
   vi: {
     weekStart: 1,
     timeFormat: "hours24",
@@ -166,12 +179,13 @@ const DayjsContext = React.createContext<{
   locale: {
     weekStart: number;
     timeFormat: TimeFormat;
-    timeZone: string;
   };
-  weekStart: number;
   timeZone: string;
   timeFormat: TimeFormat;
+  weekStart: number;
 } | null>(null);
+
+DayjsContext.displayName = "DayjsContext";
 
 export const useDayjs = () => {
   return useRequiredContext(DayjsContext);
@@ -179,58 +193,102 @@ export const useDayjs = () => {
 
 export const DayjsProvider: React.FunctionComponent<{
   children?: React.ReactNode;
-}> = ({ children }) => {
-  const router = useRouter();
-
-  const localeConfig = dayjsLocales[router.locale ?? "en"];
-  const { data } = trpc.userPreferences.get.useQuery();
-
+  config?: {
+    locale?: string;
+    timeZone?: string;
+    localeOverrides?: {
+      weekStart?: number;
+      timeFormat?: TimeFormat;
+    };
+  };
+}> = ({ config, children }) => {
+  const locale = useParams()?.locale as string;
+  const l = config?.locale ?? locale ?? "en";
   const state = useAsync(async () => {
-    const locale = await localeConfig.import();
-    const localeTimeFormat = localeConfig.timeFormat;
-    const timeFormat = data?.timeFormat ?? localeConfig.timeFormat;
+    return await dayjsLocales[l].import();
+  }, [l]);
+
+  const preferredTimeZone = React.useMemo(
+    () =>
+      config?.timeZone
+        ? resolveGeographicTimeZone(config?.timeZone)
+        : getBrowserTimeZone(),
+    [config?.timeZone],
+  );
+
+  const adjustTimeZone = React.useCallback(
+    (date: dayjs.ConfigType, localTime = false) => {
+      if (!localTime) {
+        return dayjs(date).tz(preferredTimeZone);
+      } else {
+        return dayjs(date).utc();
+      }
+    },
+    [preferredTimeZone],
+  );
+
+  if (!state.value) {
+    // wait for locale to load before rendering
+    return null;
+  }
+
+  const dayjsLocale = state.value;
+  const localeConfig = dayjsLocales[l];
+  const localeTimeFormat = localeConfig.timeFormat;
+
+  if (config?.localeOverrides) {
+    const timeFormat =
+      config.localeOverrides.timeFormat ?? localeConfig.timeFormat;
+    const weekStart =
+      config.localeOverrides.weekStart ?? localeConfig.weekStart;
     dayjs.locale("custom", {
-      ...locale,
-      weekStart: data?.weekStart ?? locale.weekStart,
+      ...dayjsLocale,
+      weekStart,
       formats:
-        localeTimeFormat === data?.timeFormat
-          ? locale.formats
+        localeTimeFormat === config.localeOverrides?.timeFormat
+          ? dayjsLocale.formats
           : {
-              ...locale.formats,
+              ...dayjsLocale.formats,
               LT: timeFormat === "hours12" ? "h:mm A" : "HH:mm",
             },
     });
-  }, [localeConfig, data]);
-
-  const locale = {
-    timeZone: getBrowserTimeZone(),
-    weekStart: localeConfig.weekStart,
-    timeFormat: localeConfig.timeFormat,
-  };
-
-  const preferredTimeZone = data?.timeZone ?? locale.timeZone;
-
-  if (state.loading) {
-    // wait for locale to load before rendering
-    return null;
+  } else {
+    dayjs.locale(dayjsLocale);
   }
 
   return (
     <DayjsContext.Provider
       value={{
-        adjustTimeZone: (date, keepLocalTime) => {
-          return keepLocalTime
-            ? dayjs(date).utc()
-            : dayjs(date).tz(preferredTimeZone);
-        },
+        adjustTimeZone,
         dayjs,
-        locale,
+        locale: localeConfig, // locale defaults
         timeZone: preferredTimeZone,
-        weekStart: dayjs.localeData().firstDayOfWeek() === 0 ? 0 : 1,
-        timeFormat: data?.timeFormat ?? localeConfig.timeFormat,
+        timeFormat:
+          config?.localeOverrides?.timeFormat ?? localeConfig.timeFormat,
+        weekStart: config?.localeOverrides?.weekStart ?? localeConfig.weekStart,
       }}
     >
       {children}
     </DayjsContext.Provider>
+  );
+};
+
+export const ConnectedDayjsProvider = ({
+  children,
+}: React.PropsWithChildren) => {
+  const { preferences } = usePreferences();
+  return (
+    <DayjsProvider
+      config={{
+        locale: preferences.locale ?? undefined,
+        timeZone: preferences.timeZone ?? undefined,
+        localeOverrides: {
+          weekStart: preferences.weekStart ?? undefined,
+          timeFormat: preferences.timeFormat ?? undefined,
+        },
+      }}
+    >
+      {children}
+    </DayjsProvider>
   );
 };

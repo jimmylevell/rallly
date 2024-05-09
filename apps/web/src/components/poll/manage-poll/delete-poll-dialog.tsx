@@ -1,4 +1,3 @@
-import { trpc } from "@rallly/backend";
 import { Button } from "@rallly/ui/button";
 import {
   Dialog,
@@ -8,11 +7,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@rallly/ui/dialog";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import { Trans } from "@/components/trans";
 import { usePostHog } from "@/utils/posthog";
+import { trpc } from "@/utils/trpc/client";
 
 export const DeletePollDialog: React.FunctionComponent<{
   open: boolean;
@@ -20,7 +20,7 @@ export const DeletePollDialog: React.FunctionComponent<{
   urlId: string;
 }> = ({ open, onOpenChange, urlId }) => {
   const posthog = usePostHog();
-  const queryClient = trpc.useContext();
+  const queryClient = trpc.useUtils();
   const router = useRouter();
   const deletePoll = trpc.polls.delete.useMutation({
     onSuccess: () => {

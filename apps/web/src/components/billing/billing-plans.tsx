@@ -1,4 +1,3 @@
-import { TrendingUpIcon } from "@rallly/icons";
 import {
   BillingPlan,
   BillingPlanDescription,
@@ -11,6 +10,7 @@ import {
 } from "@rallly/ui/billing-plan";
 import { Button } from "@rallly/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@rallly/ui/tabs";
+import { TrendingUpIcon } from "lucide-react";
 import React from "react";
 
 import { Trans } from "@/components/trans";
@@ -71,9 +71,9 @@ export const BillingPlans = () => {
           </BillingPlan>
           <div className="space-y-4 rounded-md border p-4">
             <div>
-              <h3>
+              <BillingPlanTitle>
                 <Trans i18nKey="planPro" />
-              </h3>
+              </BillingPlanTitle>
               <p className="text-muted-foreground text-sm">
                 <Trans
                   i18nKey="planProDescription"
@@ -129,10 +129,10 @@ export const BillingPlans = () => {
       </Tabs>
       <div className="rounded-md border border-cyan-200 bg-cyan-50 px-4 py-3 text-cyan-800">
         <div className="mb-2">
-          <TrendingUpIcon className="text-indigo mr-2 mt-0.5 h-6 w-6 shrink-0" />
+          <TrendingUpIcon className="text-indigo mr-2 mt-0.5 size-6 shrink-0" />
         </div>
         <div className="mb-2 flex items-center gap-x-2">
-          <h3 className="text-sm">
+          <h3 className="text-sm font-semibold">
             <Trans
               i18nKey="upgradeNowSaveLater"
               defaults="Upgrade now, save later"

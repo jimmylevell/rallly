@@ -4,12 +4,12 @@
   "blog": "博客",
   "discussions": "讨论区",
   "footerCredit": "由 <a>@imlukevella</a> 制作",
-  "footerSponsor": "此项目由用户资助。请考虑通过 <a>捐赠</a> 来支持它。",
+  "footerSponsor": "此项目由用户资助。请考虑 <a>捐赠</a> 来支持它。",
   "language": "语言",
   "poweredBy": "技术支持",
   "privacyPolicy": "隐私条款",
   "support": "支持",
-  "cookiePolicy": "Cookies政策",
+  "cookiePolicy": "Cookies 政策",
   "termsOfUse": "使用条款",
   "volunteerTranslator": "协助翻译本站",
   "notFoundTitle": "404 not found",
@@ -22,5 +22,6 @@
   "findATime": "找个时间见面",
   "getStarted": "开始使用",
   "availabilityPoll": "可用性投票",
-  "solutions": "解決方案"
+  "solutions": "解決方案",
+  "howItWorks": "如何使用"
 }

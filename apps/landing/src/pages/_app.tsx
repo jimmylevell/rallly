@@ -1,8 +1,6 @@
 import "tailwindcss/tailwind.css";
 import "../style.css";
 
-import { trpc, UserSession } from "@rallly/backend/next/trpc/client";
-import { absoluteUrl } from "@rallly/utils";
 import { inject } from "@vercel/analytics";
 import dayjs from "dayjs";
 import localizedFormat from "dayjs/plugin/localizedFormat";
@@ -16,6 +14,8 @@ import { appWithTranslation } from "next-i18next";
 import { DefaultSeo, SoftwareAppJsonLd } from "next-seo";
 import React from "react";
 
+import { absoluteUrl } from "@/utils/absolute-url";
+
 import * as nextI18nNextConfig from "../../next-i18next.config.js";
 import { NextPageWithLayout } from "../types";
 
@@ -26,12 +26,8 @@ const inter = Inter({
   display: "swap",
 });
 
-type PageProps = {
-  user?: UserSession;
-};
-
-type AppPropsWithLayout = AppProps<PageProps> & {
-  Component: NextPageWithLayout<PageProps>;
+type AppPropsWithLayout = AppProps & {
+  Component: NextPageWithLayout;
 };
 
 const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
@@ -84,10 +80,10 @@ const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
       <SoftwareAppJsonLd
         name="Rallly"
         aggregateRating={{
-          ratingValue: "4.2",
+          ratingValue: "4.3",
           bestRating: "5",
           worstRating: "0",
-          ratingCount: "6",
+          ratingCount: "9",
         }}
         price="0"
         priceCurrency="USD"
@@ -111,4 +107,4 @@ const MyApp: NextPage<AppPropsWithLayout> = ({ Component, pageProps }) => {
   );
 };
 
-export default trpc.withTRPC(appWithTranslation(MyApp, nextI18nNextConfig));
+export default appWithTranslation(MyApp, nextI18nNextConfig);

@@ -1,62 +1,43 @@
-import { EmailClient, SupportedEmailProviders } from "@rallly/emails";
-import { createProxySSGHelpers } from "@trpc/react-query/ssg";
-import * as trpc from "@trpc/server";
-import * as trpcNext from "@trpc/server/adapters/next";
-import { GetServerSidePropsContext } from "next";
-import superjson from "superjson";
+import { EmailClient } from "@rallly/emails";
+import { inferAsyncReturnType, TRPCError } from "@trpc/server";
+import { CreateNextContextOptions } from "@trpc/server/adapters/next";
 
-import { randomid } from "../utils/nanoid";
-import { appRouter } from "./routers";
+export type GetUserFn = (opts: CreateNextContextOptions) => Promise<{
+  id: string;
+  isGuest: boolean;
+} | null>;
 
-// Avoid use NODE_ENV directly because it will be replaced when using the dev server for e2e tests
-const env = process.env["NODE" + "_ENV"];
+export interface TRPCContextParams {
+  getUser: GetUserFn;
+  emailClient: EmailClient;
+  isSelfHosted: boolean;
+  isEmailBlocked?: (email: string) => boolean;
+  /**
+   * Takes a relative path and returns an absolute URL to the app
+   * @param path
+   * @returns absolute URL
+   */
+  absoluteUrl: (path?: string) => string;
+  shortUrl: (path?: string) => string;
+}
 
-export async function createContext(
-  opts: trpcNext.CreateNextContextOptions | GetServerSidePropsContext,
-) {
-  let user = opts.req.session.user;
+export const createTRPCContext = async (
+  opts: CreateNextContextOptions,
+  { getUser, ...params }: TRPCContextParams,
+) => {
+  const user = await getUser(opts);
+
   if (!user) {
-    user = {
-      id: `user-${randomid()}`,
-      isGuest: true,
-    };
-    opts.req.session.user = user;
-    await opts.req.session.save();
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Request has no session",
+    });
   }
-
-  const emailClient = new EmailClient({
-    openPreviews: env === "development",
-    useTestServer: env === "test",
-    provider: {
-      name: (process.env.EMAIL_PROVIDER as SupportedEmailProviders) ?? "smtp",
-    },
-    mail: {
-      from: {
-        name: "Rallly",
-        address:
-          (process.env.NOREPLY_EMAIL as string) ||
-          (process.env.SUPPORT_EMAIL as string),
-      },
-    },
-  });
 
   return {
     user,
-    session: opts.req.session,
-    req: opts.req,
-    res: opts.res,
-    isSelfHosted: process.env.NEXT_PUBLIC_SELF_HOSTED === "true",
-    emailClient,
+    ...params,
   };
-}
+};
 
-export type Context = trpc.inferAsyncReturnType<typeof createContext>;
-
-export const createSSGHelperFromContext = async (
-  ctx: GetServerSidePropsContext,
-) =>
-  createProxySSGHelpers({
-    router: appRouter,
-    ctx: await createContext(ctx),
-    transformer: superjson,
-  });
+export type TRPCContext = inferAsyncReturnType<typeof createTRPCContext>;

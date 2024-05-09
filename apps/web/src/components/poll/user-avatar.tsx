@@ -96,7 +96,9 @@ const UserAvatar: React.FunctionComponent<UserAvaterProps> = ({
       )}
     >
       <UserAvatarInner {...forwardedProps} />
-      <div className="min-w-0 truncate font-medium">{forwardedProps.name}</div>
+      <div className="min-w-0 truncate text-sm font-medium">
+        {forwardedProps.name}
+      </div>
       {isYou ? <Badge>{t("you")}</Badge> : null}
     </div>
   );
@@ -109,7 +111,7 @@ export const YouAvatar = () => {
   const you = t("you");
   return (
     <span className="inline-flex items-center gap-x-2.5">
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold uppercase">
+      <span className="inline-flex size-6 items-center justify-center rounded-full bg-gray-200 text-xs font-semibold uppercase">
         {you[0]}
       </span>
       {t("you")}

@@ -1,4 +1,3 @@
-import { ArrowUpRightIcon, Share2Icon } from "@rallly/icons";
 import { Button } from "@rallly/ui/button";
 import {
   Dialog,
@@ -8,7 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@rallly/ui/dialog";
-import { shortUrl } from "@rallly/utils";
+import { ArrowUpRightIcon, Share2Icon } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { useCopyToClipboard } from "react-use";
@@ -16,14 +15,12 @@ import { useCopyToClipboard } from "react-use";
 import { useParticipants } from "@/components/participants-provider";
 import { Trans } from "@/components/trans";
 import { usePoll } from "@/contexts/poll";
-import { isSelfHosted } from "@/utils/constants";
 
-export const InviteDialog = () => {
-  const { participants } = useParticipants();
-  const [isOpen, setIsOpen] = React.useState(participants.length === 0);
-  const poll = usePoll();
-
+export function CopyInviteLinkButton() {
+  const [didCopy, setDidCopy] = React.useState(false);
   const [state, copyToClipboard] = useCopyToClipboard();
+  const poll = usePoll();
+  const inviteLinkWithoutProtocol = poll.inviteLink.replace(/^https?:\/\//, "");
 
   React.useEffect(() => {
     if (state.error) {
@@ -31,19 +28,36 @@ export const InviteDialog = () => {
     }
   }, [state]);
 
-  const inviteLink = isSelfHosted
-    ? window.location.origin + `/invite/${poll?.id}`
-    : shortUrl(`/invite/${poll?.id}`);
+  return (
+    <Button
+      className="min-w-0 grow"
+      onClick={() => {
+        copyToClipboard(poll.inviteLink);
+        setDidCopy(true);
+        setTimeout(() => {
+          setDidCopy(false);
+        }, 1000);
+      }}
+    >
+      {didCopy ? (
+        <Trans i18nKey="copied" />
+      ) : (
+        <span className="min-w-0 truncate">{inviteLinkWithoutProtocol}</span>
+      )}
+    </Button>
+  );
+}
 
-  const [didCopy, setDidCopy] = React.useState(false);
+export const InviteDialog = () => {
+  const { participants } = useParticipants();
+  const [isOpen, setIsOpen] = React.useState(participants.length === 0);
+  const poll = usePoll();
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild={true}>
         <Button variant="primary" icon={Share2Icon}>
-          <span className="hidden sm:block">
-            <Trans i18nKey="share" defaults="Share" />
-          </span>
+          <Trans i18nKey="share" defaults="Share" />
         </Button>
       </DialogTrigger>
       <DialogContent
@@ -51,7 +65,7 @@ export const InviteDialog = () => {
         className="bg-gradient-to-b from-gray-100 via-white to-white sm:max-w-md"
       >
         <div className="flex">
-          <Share2Icon className="text-primary h-6 w-6" />
+          <Share2Icon className="text-primary size-6" />
         </div>
         <DialogHeader className="">
           <DialogTitle>
@@ -69,26 +83,11 @@ export const InviteDialog = () => {
             <Trans i18nKey="inviteLink" defaults="Invite Link" />
           </label>
           <div className="flex gap-2">
-            <Button
-              className="w-full min-w-0 bg-gray-50 px-2.5"
-              onClick={() => {
-                copyToClipboard(inviteLink);
-                setDidCopy(true);
-                setTimeout(() => {
-                  setDidCopy(false);
-                }, 1000);
-              }}
-            >
-              {didCopy ? (
-                <Trans i18nKey="copied" />
-              ) : (
-                <span className="flex truncate">{inviteLink}</span>
-              )}
-            </Button>
+            <CopyInviteLinkButton />
             <div className="shrink-0">
               <Button asChild>
                 <Link target="_blank" href={`/invite/${poll.id}`}>
-                  <ArrowUpRightIcon className="h-4 w-4" />
+                  <ArrowUpRightIcon className="size-4" />
                 </Link>
               </Button>
             </div>

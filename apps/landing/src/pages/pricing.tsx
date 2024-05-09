@@ -1,4 +1,3 @@
-import { TrendingUpIcon } from "@rallly/icons";
 import {
   BillingPlan,
   BillingPlanDescription,
@@ -11,6 +10,7 @@ import {
 } from "@rallly/ui/billing-plan";
 import { Button } from "@rallly/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@rallly/ui/tabs";
+import { TrendingUpIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "next-i18next";
 import { NextSeo } from "next-seo";
@@ -82,7 +82,7 @@ const PriceTables = () => {
             </BillingPlanPeriod>
           </div>
           <hr />
-          <Button className="w-full">
+          <Button asChild className="w-full">
             <Link href={linkToApp("/")}>
               <Trans i18nKey="common:getStarted" defaults="Get started" />
             </Link>
@@ -170,10 +170,7 @@ const FAQ = () => {
   return (
     <div className="rounded-md p-6">
       <h2 className="mb-4 sm:mb-6">
-        <Trans
-          i18nKey="pricing:faq"
-          defaults="Frequently Asked Questions"
-        ></Trans>
+        <Trans i18nKey="pricing:faq" defaults="Frequently Asked Questions" />
       </h2>
       <div className="space-y-4 sm:space-y-6">
         <div className="grid grid-cols-1 gap-x-8 gap-y-2">
@@ -181,13 +178,13 @@ const FAQ = () => {
             <Trans
               i18nKey="pricing:canUseFree"
               defaults="Can I use Rallly for free?"
-            ></Trans>
+            />
           </h3>
           <p className="col-span-2 text-sm leading-relaxed text-slate-600">
             <Trans
               i18nKey="pricing:canUseFreeAnswer2"
               defaults="Yes, most of Rallly's features are free and many users will never need to pay for anything. However, there are some features that are only available to paying customers. These features are designed to help you get the most out of Rallly."
-            ></Trans>
+            />
           </p>
         </div>
         <div className="grid grid-cols-1 gap-x-8 gap-y-2">
@@ -195,13 +192,27 @@ const FAQ = () => {
             <Trans
               i18nKey="pricing:whyUpgrade"
               defaults="Why should I upgrade?"
-            ></Trans>
+            />
           </h3>
           <p className="col-span-2 text-sm leading-relaxed text-slate-600">
             <Trans
               i18nKey="pricing:whyUpgradeAnswer2"
               defaults="Upgrading to a paid plan makes sense if you use Rallly often or use it for work. The current subscription rate is a special early adopter rate and will increase in the future. By upgrading now, you will get early access to new, high-quality scheduling tools as they are released and lock in your subscription rate so you won't be affected by future price increases."
-            ></Trans>
+            />
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-2">
+          <h3 className="col-span-1">
+            <Trans
+              i18nKey="pricing:whenPollInactive"
+              defaults="When does a poll become inactive?"
+            />
+          </h3>
+          <p className="col-span-2 text-sm leading-relaxed text-slate-600">
+            <Trans
+              i18nKey="pricing:whenPollInactiveAnswer"
+              defaults="Polls become inactive when all date options are in the past AND the poll has not been accessed for over 30 days. Inactive polls are automatically deleted if you do not have a paid subscription."
+            />
           </p>
         </div>
         <div className="grid grid-cols-1 gap-x-8 gap-y-2">
@@ -232,7 +243,7 @@ const FAQ = () => {
             <Trans
               i18nKey="pricing:cancelSubscription"
               defaults="How do I cancel my subscription?"
-            ></Trans>
+            />
           </h3>
           <p className="col-span-2 text-sm leading-relaxed text-slate-600">
             <Trans
@@ -247,7 +258,7 @@ const FAQ = () => {
                 b: <strong />,
               }}
               defaults="You can cancel your subscription at any time by going to your <a>billing settings</a>. Once you cancel your subscription, you will still have access to your paid plan until the end of your billing period. After that, you will be downgraded to a free plan."
-            ></Trans>
+            />
           </p>
         </div>
       </div>
@@ -278,7 +289,7 @@ const Page: NextPageWithLayout = () => {
         <PriceTables />
         <div className="rounded-md border bg-gradient-to-b from-cyan-50 to-cyan-50/60 px-5 py-4 text-cyan-800">
           <div className="mb-2">
-            <TrendingUpIcon className="text-indigo mr-2 mt-0.5 h-6 w-6 shrink-0" />
+            <TrendingUpIcon className="text-indigo mr-2 mt-0.5 size-6 shrink-0" />
           </div>
           <div className="mb-1 flex items-center gap-x-2">
             <h3 className="text-sm">

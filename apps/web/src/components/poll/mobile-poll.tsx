@@ -1,7 +1,7 @@
 import { Listbox } from "@headlessui/react";
-import { ChevronDownIcon, MoreHorizontalIcon, PlusIcon } from "@rallly/icons";
 import { Button } from "@rallly/ui/button";
 import { AnimatePresence, m } from "framer-motion";
+import { ChevronDownIcon, MoreHorizontalIcon, PlusIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import * as React from "react";
 import smoothscroll from "smoothscroll-polyfill";
@@ -152,7 +152,7 @@ const MobilePoll: React.FunctionComponent = () => {
           ) : null}
         </div>
       </div>
-      {poll.options[0].duration !== 0 ? (
+      {poll.options[0].duration !== 0 && poll.timeZone ? (
         <div className="flex border-b bg-gray-50 p-3">
           <TimesShownIn />
         </div>

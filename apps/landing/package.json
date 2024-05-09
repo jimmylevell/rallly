@@ -20,9 +20,8 @@
     "@svgr/webpack": "^6.5.1",
     "@tailwindcss/typography": "^0.5.9",
     "@vercel/analytics": "^0.1.8",
-    "@vercel/og": "^0.5.11",
     "autoprefixer": "^10.4.13",
-    "class-variance-authority": "^0.6.0",
+    "class-variance-authority": "^0.7.0",
     "dayjs": "^1.11.7",
     "gray-matter": "^4.0.3",
     "i18next": "^22.4.9",
@@ -40,26 +39,10 @@
   "devDependencies": {
     "@next/bundle-analyzer": "^12.3.4",
     "@rallly/tsconfig": "*",
-    "@types/accept-language-parser": "^1.5.3",
     "@types/color-hash": "^1.0.2",
     "@types/lodash": "^4.14.178",
-    "@types/react": "^18.0.28",
-    "@types/react-big-calendar": "^0.31.0",
-    "@types/react-dom": "^18.0.11",
-    "@types/react-linkify": "^1.0.1",
-    "@types/smoothscroll-polyfill": "^0.3.1",
-    "cheerio": "^1.0.0-rc.12",
     "cross-env": "^7.0.3",
-    "eslint-config-turbo": "^0.0.9",
-    "eslint-import-resolver-typescript": "^2.7.0",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-react": "^7.23.2",
-    "eslint-plugin-react-hooks": "^4.2.0",
-    "eslint-plugin-simple-import-sort": "^7.0.0",
     "i18next-scanner": "^4.2.0",
-    "i18next-scanner-typescript": "^1.1.1",
-    "prettier-plugin-tailwindcss": "^0.1.8",
-    "smtp-tester": "^2.0.1",
-    "wait-on": "^6.0.1"
+    "i18next-scanner-typescript": "^1.1.1"
   }
 }

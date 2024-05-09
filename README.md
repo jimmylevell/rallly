@@ -24,45 +24,53 @@ Built with [Next.js](https://github.com/vercel/next.js/), [Prisma](https://githu
 
 Check out the [self-hosting docs](https://support.rallly.co/self-hosting) for more information on running your own instance of Rallly.
 
-## Development
+## Get started
 
-Clone this repo and change directory to the root of the repository.
+1. Clone the repository switch to the project directory
 
-```bash
-git clone https://github.com/lukevella/rallly.git
-cd rallly
-```
+   ```bash
+   git clone https://github.com/lukevella/rallly.git
+   cd rallly
+   ```
 
-Install dependencies
+2. Install dependencies
 
-```
-yarn
-```
+   ```
+   yarn
+   ```
 
-Copy the sample `.env` file then open it and set the required [configuration options](https://support.rallly.co/self-hosting/configuration-options).
+3. Setup environment variables
 
-```bash
-cp sample.env .env
-```
+   ```bash
+   cp sample.env .env
+   ```
 
-Next, run the following command:
+   Create a `.env` file by copying `sample.env` then open it and set the required [configuration options](https://support.rallly.co/self-hosting/configuration-options).
 
-```
-yarn db:generate && yarn db:reset
-```
+4. Setup the database
 
-This will:
+   If you don't have a postgres database running locally, you can spin up a new database using docker by running:
 
-- generate the prisma database client
-- run migrations to create the database schema
-- seed the database with some random data
+   ```
+   yarn dx
+   ```
 
-Start the Next.js server
+   If you already have a postgres database, you can run the migrations and seed the database by running:
 
-```
-# For development
-yarn dev
-```
+   ```
+   yarn db:setup
+   ```
+
+   This will:
+
+   - run migrations to create the database schema
+   - seed the database with test users and random data
+
+5. Start the Next.js server
+
+   ```
+   yarn dev
+   ```
 
 ## Contributors
 
@@ -91,12 +99,14 @@ Thank you to our sponsors for making this project possible.
 
 And thank you to these companies for sponsoring and showing support for this project.
 
-<a href="https://appwrite.io?utm_source=rallly"><img src="./assets/images/appwrite.svg" alt="appwrite" height="24" /></a>
-&nbsp;&nbsp;&nbsp;
-<a href="https://vercel.com/?utm_source=rallly&utm_campaign=oss"><img src="./apps/landing/public/vercel-logotype-dark.svg" alt="Powered by Vercel" height="24" /></a>
-&nbsp;&nbsp;&nbsp;
-<a href="https://m.do.co/c/f91efc9c9e50"><img src="./apps/landing/public/digitalocean.svg" alt="Digital Ocean" height="24" /></a>
-&nbsp;&nbsp;&nbsp;
-<a href="https://sentry.io?utm_source=rallly"><img src="./apps/landing/public/sentry.svg" alt="Sentry" height="24" /></a>&nbsp;&nbsp;&nbsp;
-<a href="https://cloudron.io?utm_source=rallly"><img src="./assets/images/cloudron-logo.svg" alt="Cloudron" height="32"></a>&nbsp;&nbsp;&nbsp;
-<a href="https://featurebase.app?utm_source=rallly"><img src="./assets/images/featurebase.svg" alt="Featurebase" height="30"></a>
+<p>
+<a href="https://appwrite.io?utm_source=rallly"><img src="./assets/images/appwrite.svg" alt="appwrite" height="24" /></a>&nbsp;&nbsp;&nbsp;<!--
+--><a href="https://vercel.com/?utm_source=rallly&utm_campaign=oss"><img src="./assets/images/vercel-logotype-dark.svg#gh-light-mode-only" alt="Powered by Vercel" height="24" /></a>&nbsp;&nbsp;&nbsp;<!--
+--><a href="https://ura.design?utm_source=rallly"><img height="24" alt="Ura Design" src="./assets/images/ura-logo-blue.svg"></a>
+</p>
+<p>
+<a href="https://m.do.co/c/f91efc9c9e50"><img src="./apps/landing/public/digitalocean.svg" alt="Digital Ocean" height="24" /></a>&nbsp;&nbsp;&nbsp;<!--
+--><a href="https://sentry.io?utm_source=rallly"><img src="./apps/landing/public/sentry.svg" alt="Sentry" height="24" /></a>&nbsp;&nbsp;&nbsp;<!--
+--><a href="https://cloudron.io?utm_source=rallly"><img src="./assets/images/cloudron-logo.svg" alt="Cloudron" height="30"></a>&nbsp;&nbsp;&nbsp;<!--
+--><a href="https://featurebase.app?utm_source=rallly"><img src="./assets/images/featurebase.svg" alt="Featurebase" height="28"></a>
+</p>

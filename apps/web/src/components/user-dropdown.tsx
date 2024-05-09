@@ -1,17 +1,5 @@
-import {
-  ChevronDown,
-  CreditCardIcon,
-  GemIcon,
-  LifeBuoyIcon,
-  ListIcon,
-  LogInIcon,
-  LogOutIcon,
-  MegaphoneIcon,
-  RefreshCcwIcon,
-  Settings2Icon,
-  UserIcon,
-  UserPlusIcon,
-} from "@rallly/icons";
+"use client";
+import { cn } from "@rallly/ui";
 import { Button } from "@rallly/ui/button";
 import {
   DropdownMenu,
@@ -21,8 +9,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@rallly/ui/dropdown-menu";
+import {
+  ChevronDown,
+  CreditCardIcon,
+  GemIcon,
+  LifeBuoyIcon,
+  ListIcon,
+  LogInIcon,
+  LogOutIcon,
+  MegaphoneIcon,
+  Settings2Icon,
+  UserIcon,
+  UserPlusIcon,
+} from "lucide-react";
 import Link from "next/link";
 
+import { LoginLink } from "@/components/login-link";
+import { RegisterLink } from "@/components/register-link";
 import { Trans } from "@/components/trans";
 import { CurrentUserAvatar } from "@/components/user";
 import { IfCloudHosted, IfSelfHosted } from "@/contexts/environment";
@@ -31,14 +34,32 @@ import { isFeedbackEnabled } from "@/utils/constants";
 
 import { IfAuthenticated, IfGuest, useUser } from "./user-provider";
 
-export const UserDropdown = () => {
+function logout() {
+  // programmtically submit form with name="logout"
+  const form = document.forms.namedItem("logout");
+  if (form && typeof form.submit === "function") {
+    form.submit();
+  } else {
+    console.error("Logout form or submit method not found");
+  }
+}
+
+export const UserDropdown = ({ className }: { className?: string }) => {
   const { user } = useUser();
+
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild className="group">
-        <Button variant="ghost" className="rounded-full">
-          <CurrentUserAvatar size="sm" className="-ml-1" />
-          <ChevronDown className="h-4 w-4" />
+      <DropdownMenuTrigger
+        data-testid="user-dropdown"
+        asChild
+        className={cn("group min-w-0", className)}
+      >
+        <Button variant="ghost" className="flex justify-between">
+          <span className="flex items-center gap-x-2.5">
+            <CurrentUserAvatar size="sm" className="-ml-1 shrink-0 " />
+            <span className="truncate">{user.name}</span>
+          </span>
+          <ChevronDown className="text-muted-foreground size-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -56,22 +77,27 @@ export const UserDropdown = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild={true}>
           <Link href="/polls" className="flex items-center gap-x-2 sm:hidden">
-            <ListIcon className="h-4 w-4" />
+            <ListIcon className="text-muted-foreground size-4" />
             <Trans i18nKey="polls" defaults="Polls" />
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild={true}>
-          <Link href="/settings/profile" className="flex items-center gap-x-2">
-            <UserIcon className="h-4 w-4" />
-            <Trans i18nKey="profile" defaults="Profile" />
-          </Link>
-        </DropdownMenuItem>
+        <IfAuthenticated>
+          <DropdownMenuItem asChild={true}>
+            <Link
+              href="/settings/profile"
+              className="flex items-center gap-x-2"
+            >
+              <UserIcon className="text-muted-foreground size-4" />
+              <Trans i18nKey="profile" defaults="Profile" />
+            </Link>
+          </DropdownMenuItem>
+        </IfAuthenticated>
         <DropdownMenuItem asChild={true}>
           <Link
             href="/settings/preferences"
             className="flex items-center gap-x-2"
           >
-            <Settings2Icon className="h-4 w-4" />
+            <Settings2Icon className="text-muted-foreground size-4" />
             <Trans i18nKey="preferences" defaults="Preferences" />
           </Link>
         </DropdownMenuItem>
@@ -81,7 +107,7 @@ export const UserDropdown = () => {
               href="/settings/billing"
               className="flex items-center gap-x-2"
             >
-              <CreditCardIcon className="h-4 w-4" />
+              <CreditCardIcon className="text-muted-foreground size-4" />
               <Trans i18nKey="Billing" defaults="Billing" />
             </Link>
           </DropdownMenuItem>
@@ -93,7 +119,7 @@ export const UserDropdown = () => {
             href="https://support.rallly.co"
             className="flex items-center gap-x-2"
           >
-            <LifeBuoyIcon className="h-4 w-4" />
+            <LifeBuoyIcon className="text-muted-foreground size-4" />
             <Trans i18nKey="support" defaults="Support" />
           </Link>
         </DropdownMenuItem>
@@ -104,7 +130,7 @@ export const UserDropdown = () => {
               href="https://support.rallly.co/self-hosting/pricing"
               className="flex items-center gap-x-2"
             >
-              <GemIcon className="h-4 w-4" />
+              <GemIcon className="text-muted-foreground size-4" />
               <Trans i18nKey="pricing" defaults="Pricing" />
             </Link>
           </DropdownMenuItem>
@@ -116,7 +142,7 @@ export const UserDropdown = () => {
               href="https://feedback.rallly.co"
               className="flex items-center gap-x-2"
             >
-              <MegaphoneIcon className="h-4 w-4" />
+              <MegaphoneIcon className="text-muted-foreground size-4" />
               <Trans i18nKey="feedback" defaults="Feedback" />
             </Link>
           </DropdownMenuItem>
@@ -124,30 +150,34 @@ export const UserDropdown = () => {
         <DropdownMenuSeparator />
         <IfGuest>
           <DropdownMenuItem asChild={true}>
-            <Link href="/login" className="flex items-center gap-x-2">
-              <LogInIcon className="h-4 w-4" />
+            <LoginLink className="flex items-center gap-x-2">
+              <LogInIcon className="text-muted-foreground size-4" />
               <Trans i18nKey="login" defaults="login" />
-            </Link>
+            </LoginLink>
           </DropdownMenuItem>
           <DropdownMenuItem asChild={true}>
-            <Link href="/register" className="flex items-center gap-x-2">
-              <UserPlusIcon className="h-4 w-4" />
+            <RegisterLink className="flex items-center gap-x-2">
+              <UserPlusIcon className="text-muted-foreground size-4" />
               <Trans i18nKey="createAnAccount" defaults="Register" />
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild={true}>
-            <Link href="/logout" className="flex items-center gap-x-2">
-              <RefreshCcwIcon className="h-4 w-4" />
-              <Trans i18nKey="forgetMe" />
-            </Link>
+            </RegisterLink>
           </DropdownMenuItem>
         </IfGuest>
         <IfAuthenticated>
-          <DropdownMenuItem asChild={true}>
-            <Link href="/logout" className="flex items-center gap-x-2">
-              <LogOutIcon className="h-4 w-4" />
-              <Trans i18nKey="logout" />
-            </Link>
+          <DropdownMenuItem
+            onSelect={() => {
+              logout();
+            }}
+            className="flex items-center gap-x-2"
+          >
+            <form
+              className="hidden"
+              action="/auth/logout"
+              name="logout"
+              method="POST"
+            />
+            {/* Don't use signOut() from next-auth. It doesn't work in vercel-production env. I don't know why. */}
+            <LogOutIcon className="text-muted-foreground size-4" />
+            <Trans i18nKey="logout" />
           </DropdownMenuItem>
         </IfAuthenticated>
       </DropdownMenuContent>

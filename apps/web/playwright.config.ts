@@ -4,15 +4,13 @@ import path from "path";
 
 const ci = process.env.CI === "true";
 
-dotenv.config({ path: path.resolve(__dirname, "../../", ".env") });
+dotenv.config({ path: path.resolve(__dirname, ".env.test") });
 
 // Use process.env.PORT by default and fallback to port 3000
 const PORT = process.env.PORT || 3000;
 
 // Set webServer.url and use.baseURL with the location of the WebServer respecting the correct set port
 const baseURL = `http://localhost:${PORT}`;
-
-process.env.NEXT_PUBLIC_BASE_URL = baseURL;
 
 // Reference: https://playwright.dev/docs/test-configuration
 const config: PlaywrightTestConfig = {
@@ -25,11 +23,11 @@ const config: PlaywrightTestConfig = {
     permissions: ["clipboard-read"],
     trace: "retain-on-failure",
   },
+  testDir: "./tests",
   webServer: {
-    command: `NODE_ENV=test yarn dev --port ${PORT}`,
+    command: `NODE_ENV=test yarn start --port ${PORT}`,
     url: baseURL,
-    timeout: 120 * 1000,
-    reuseExistingServer: !ci,
+    reuseExistingServer: !process.env.CI,
   },
   reporter: [
     [ci ? "github" : "list"],

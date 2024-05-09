@@ -1,12 +1,12 @@
-import { trpc } from "@rallly/backend";
-import { HelpCircleIcon } from "@rallly/icons";
 import { cn } from "@rallly/ui";
 import { Button } from "@rallly/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@rallly/ui/tooltip";
+import { HelpCircleIcon } from "lucide-react";
 import Script from "next/script";
 import React from "react";
 
 import { Trans } from "@/components/trans";
+import { useUser } from "@/components/user-provider";
 import { isFeedbackEnabled } from "@/utils/constants";
 
 const FeaturebaseScript = () => (
@@ -47,7 +47,7 @@ export const FeaturebaseChangelog = ({ className }: { className?: string }) => {
             variant="ghost"
             data-featurebase-changelog
           >
-            <HelpCircleIcon className="h-4 w-4" />
+            <HelpCircleIcon className="size-4" />
             <span
               id="fb-update-badge"
               className="bg-primary rounded-full px-2 py-px text-xs text-gray-100 empty:hidden"
@@ -63,7 +63,7 @@ export const FeaturebaseChangelog = ({ className }: { className?: string }) => {
 };
 
 export const FeaturebaseIdentify = () => {
-  const { data: user } = trpc.whoami.get.useQuery();
+  const { user } = useUser();
 
   React.useEffect(() => {
     if (user?.isGuest !== false || !isFeedbackEnabled) return;

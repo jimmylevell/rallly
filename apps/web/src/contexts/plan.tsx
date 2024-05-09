@@ -1,10 +1,11 @@
-import { trpc } from "@rallly/backend";
+"use client";
 import { Badge } from "@rallly/ui/badge";
 import React from "react";
 
 import { Trans } from "@/components/trans";
 import { useUser } from "@/components/user-provider";
 import { isSelfHosted } from "@/utils/constants";
+import { trpc } from "@/utils/trpc/client";
 
 export const useSubscription = () => {
   const { user } = useUser();
@@ -43,9 +44,9 @@ export const IfSubscribed = ({ children }: React.PropsWithChildren) => {
 };
 
 export const IfFreeUser = ({ children }: React.PropsWithChildren) => {
-  const plan = usePlan();
+  const subscription = useSubscription();
 
-  return plan === "free" ? <>{children}</> : null;
+  return subscription?.active === false ? <>{children}</> : null;
 };
 
 export const Plan = () => {

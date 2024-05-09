@@ -18,7 +18,8 @@ import { DateIcon } from "@/components/date-icon";
 import { useParticipants } from "@/components/participants-provider";
 import { ConnectedScoreSummary } from "@/components/poll/score-summary";
 import { VoteSummaryProgressBar } from "@/components/vote-summary-progress-bar";
-import { useDateFormatter, usePoll } from "@/contexts/poll";
+import { usePoll } from "@/contexts/poll";
+import { useDayjs } from "@/utils/dayjs";
 
 const formSchema = z.object({
   selectedOptionId: z.string(),
@@ -49,7 +50,7 @@ const useScoreByOptionId = () => {
 
     responses?.forEach((response) => {
       response.votes.forEach((vote) => {
-        scoreByOptionId[vote.optionId][vote.type].push(response.id);
+        scoreByOptionId[vote.optionId]?.[vote.type].push(response.id);
       });
     });
 
@@ -69,6 +70,7 @@ export const FinalizePollForm = ({
   const poll = usePoll();
   const [max, setMax] = React.useState(pageSize);
 
+  const { adjustTimeZone } = useDayjs();
   const scoreByOptionId = useScoreByOptionId();
   const { participants } = useParticipants();
 
@@ -96,7 +98,6 @@ export const FinalizePollForm = ({
       return { ...option, votes: scoreByOptionId[option.id] };
     });
 
-  const dateFormatter = useDateFormatter();
   const form = useForm<FinalizeFormData>({
     defaultValues: {
       selectedOptionId: options[0].id,
@@ -127,10 +128,16 @@ export const FinalizePollForm = ({
                     className="grid gap-2"
                   >
                     {options.slice(0, max).map((option) => {
-                      const start = dateFormatter(option.start);
-                      const end = dateFormatter(
-                        dayjs(option.start).add(option.duration, "minute"),
+                      const start = adjustTimeZone(
+                        option.startTime,
+                        !poll.timeZone,
                       );
+
+                      const end = adjustTimeZone(
+                        dayjs(option.startTime).add(option.duration, "minute"),
+                        !poll.timeZone,
+                      );
+
                       return (
                         <label
                           key={option.id}
@@ -240,7 +247,7 @@ export const FinalizePollForm = ({
               </FormDescription>
               {participantsWithoutEmails.length ? (
                 <Alert>
-                  <AlertCircleIcon className="h-4 w-4" />
+                  <AlertCircleIcon className="size-4" />
                   <AlertDescription>
                     <Trans
                       i18nKey="missingEmailsAlert"

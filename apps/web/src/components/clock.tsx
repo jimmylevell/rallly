@@ -1,5 +1,3 @@
-import { trpc } from "@rallly/backend";
-import { GlobeIcon } from "@rallly/icons";
 import { cn } from "@rallly/ui";
 import {
   Dialog,
@@ -11,6 +9,7 @@ import {
 } from "@rallly/ui/dialog";
 import { Label } from "@rallly/ui/label";
 import dayjs from "dayjs";
+import { GlobeIcon } from "lucide-react";
 import React from "react";
 import { useInterval } from "react-use";
 import spacetime from "spacetime";
@@ -19,36 +18,12 @@ import soft from "timezone-soft";
 import { TimeFormatPicker } from "@/components/time-format-picker";
 import { TimeZoneSelect } from "@/components/time-zone-picker/time-zone-select";
 import { Trans } from "@/components/trans";
+import { usePreferences } from "@/contexts/preferences";
 import { useDayjs } from "@/utils/dayjs";
 
 export const TimePreferences = () => {
-  const { timeZone, timeFormat } = useDayjs();
-  const queryClient = trpc.useContext();
-
-  const { data } = trpc.userPreferences.get.useQuery();
-
-  const updatePreferences = trpc.userPreferences.update.useMutation({
-    onMutate: (newPreferences) => {
-      queryClient.userPreferences.get.setData(undefined, (oldPreferences) => {
-        if (!oldPreferences) {
-          return null;
-        }
-        return {
-          ...oldPreferences,
-          timeFormat: newPreferences.timeFormat ?? oldPreferences?.timeFormat,
-          timeZone: newPreferences.timeZone ?? oldPreferences?.timeZone ?? null,
-          weekStart: newPreferences.weekStart ?? oldPreferences?.weekStart,
-        };
-      });
-    },
-    onSuccess: () => {
-      queryClient.userPreferences.get.invalidate();
-    },
-  });
-
-  if (data === undefined) {
-    return null;
-  }
+  const { updatePreferences } = usePreferences();
+  const { timeFormat, timeZone } = useDayjs();
 
   return (
     <div className="grid gap-4">
@@ -59,9 +34,7 @@ export const TimePreferences = () => {
         <TimeZoneSelect
           value={timeZone}
           onValueChange={(newTimeZone) => {
-            updatePreferences.mutate({
-              timeZone: newTimeZone,
-            });
+            updatePreferences({ timeZone: newTimeZone });
           }}
         />
       </div>
@@ -72,9 +45,7 @@ export const TimePreferences = () => {
         <TimeFormatPicker
           value={timeFormat}
           onChange={(newTimeFormat) => {
-            updatePreferences.mutate({
-              timeFormat: newTimeFormat,
-            });
+            updatePreferences({ timeFormat: newTimeFormat });
           }}
         />
       </div>
@@ -104,17 +75,15 @@ export const Clock = ({ className }: { className?: string }) => {
 
 export const TimesShownIn = () => {
   const { timeZone } = useDayjs();
-  const timeZoneDisplayFormat = soft(timeZone)[0];
-  const now = spacetime.now(timeZone);
-  const standard = timeZoneDisplayFormat.standard.name;
-  const dst = timeZoneDisplayFormat.daylight?.name;
-  const timeZoneName = now.isDST() ? dst : standard;
 
   return (
     <ClockPreferences>
       <button className="inline-flex items-center gap-x-2 text-sm hover:underline">
-        <GlobeIcon className="h-4 w-4" />
-        <Trans i18nKey="timeShownIn" values={{ timeZone: timeZoneName }} />
+        <GlobeIcon className="size-4" />
+        <Trans
+          i18nKey="timeShownIn"
+          values={{ timeZone: timeZone.replaceAll("_", " ") }}
+        />
       </button>
     </ClockPreferences>
   );

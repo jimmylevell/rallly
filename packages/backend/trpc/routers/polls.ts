@@ -1,5 +1,4 @@
 import { prisma } from "@rallly/database";
-import { absoluteUrl, shortUrl } from "@rallly/utils";
 import { TRPCError } from "@trpc/server";
 import dayjs from "dayjs";
 import timezone from "dayjs/plugin/timezone";
@@ -17,7 +16,6 @@ import {
   router,
 } from "../trpc";
 import { comments } from "./polls/comments";
-import { demo } from "./polls/demo";
 import { options } from "./polls/options";
 import { participants } from "./polls/participants";
 
@@ -43,7 +41,6 @@ const getPollIdFromAdminUrlId = async (urlId: string) => {
 };
 
 export const polls = router({
-  demo,
   participants,
   comments,
   options,
@@ -90,7 +87,6 @@ export const polls = router({
           timeZone: input.timeZone,
           location: input.location,
           description: input.description,
-          demo: input.demo,
           adminUrlId: adminToken,
           participantUrlId,
           userId: ctx.user.id,
@@ -104,7 +100,10 @@ export const polls = router({
           options: {
             createMany: {
               data: input.options.map((option) => ({
-                start: new Date(`${option.startDate}Z`),
+                start: dayjs(option.startDate).utc(true).toDate(),
+                startTime: input.timeZone
+                  ? dayjs(option.startDate).tz(input.timeZone, true).toDate()
+                  : dayjs(option.startDate).utc(true).toDate(),
                 duration: option.endDate
                   ? dayjs(option.endDate).diff(
                       dayjs(option.startDate),
@@ -121,11 +120,9 @@ export const polls = router({
         },
       });
 
-      const pollLink = ctx.user.isGuest
-        ? absoluteUrl(`/admin/${adminToken}`)
-        : absoluteUrl(`/poll/${pollId}`);
+      const pollLink = ctx.absoluteUrl(`/poll/${pollId}`);
 
-      const participantLink = shortUrl(`/invite/${pollId}`);
+      const participantLink = ctx.shortUrl(`/invite/${pollId}`);
 
       if (ctx.user.isGuest === false) {
         const user = await prisma.user.findUnique({
@@ -170,29 +167,43 @@ export const polls = router({
       const pollId = await getPollIdFromAdminUrlId(input.urlId);
 
       if (input.optionsToDelete && input.optionsToDelete.length > 0) {
-        await prisma.option.deleteMany({
-          where: {
-            pollId,
-            id: {
-              in: input.optionsToDelete,
+        await prisma.$transaction([
+          prisma.option.deleteMany({
+            where: {
+              pollId,
+              id: {
+                in: input.optionsToDelete,
+              },
             },
-          },
-        });
+          }),
+          prisma.vote.deleteMany({
+            where: {
+              optionId: {
+                in: input.optionsToDelete,
+              },
+            },
+          }),
+        ]);
       }
 
       if (input.optionsToAdd && input.optionsToAdd.length > 0) {
         await prisma.option.createMany({
           data: input.optionsToAdd.map((optionValue) => {
             const [start, end] = optionValue.split("/");
+
             if (end) {
               return {
                 start: new Date(`${start}Z`),
+                startTime: input.timeZone
+                  ? dayjs(start).tz(input.timeZone, true).toDate()
+                  : dayjs(start).utc(true).toDate(),
                 duration: dayjs(end).diff(dayjs(start), "minute"),
                 pollId,
               };
             } else {
               return {
                 start: new Date(start.substring(0, 10) + "T00:00:00Z"),
+                startTime: dayjs(start).utc(true).toDate(),
                 pollId,
               };
             }
@@ -226,7 +237,10 @@ export const polls = router({
     )
     .mutation(async ({ input: { urlId } }) => {
       const pollId = await getPollIdFromAdminUrlId(urlId);
-      await prisma.poll.delete({ where: { id: pollId } });
+      await prisma.poll.update({
+        where: { id: pollId },
+        data: { deleted: true, deletedAt: new Date() },
+      });
     }),
   touch: publicProcedure
     .input(
@@ -288,7 +302,7 @@ export const polls = router({
         });
       }
 
-      const res = await prisma.watcher.findFirst({
+      const watcher = await prisma.watcher.findFirst({
         where: {
           pollId: input.pollId,
           userId: ctx.user.id,
@@ -298,18 +312,13 @@ export const polls = router({
         },
       });
 
-      if (!res) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Not watching this poll",
+      if (watcher) {
+        await prisma.watcher.delete({
+          where: {
+            id: watcher.id,
+          },
         });
       }
-
-      await prisma.watcher.delete({
-        where: {
-          id: res.id,
-        },
-      });
     }),
   getByAdminUrlId: possiblyPublicProcedure
     .input(
@@ -321,28 +330,6 @@ export const polls = router({
       const res = await prisma.poll.findUnique({
         select: {
           id: true,
-          timeZone: true,
-          title: true,
-          location: true,
-          description: true,
-          createdAt: true,
-          adminUrlId: true,
-          participantUrlId: true,
-          closed: true,
-          legacy: true,
-          demo: true,
-          options: {
-            orderBy: {
-              start: "asc",
-            },
-          },
-          user: true,
-          deleted: true,
-          watchers: {
-            select: {
-              userId: true,
-            },
-          },
         },
         where: {
           adminUrlId: input.urlId,
@@ -377,16 +364,16 @@ export const polls = router({
           adminUrlId: true,
           participantUrlId: true,
           closed: true,
-          legacy: true,
+          status: true,
           hideParticipants: true,
           disableComments: true,
           hideScores: true,
           requireParticipantEmail: true,
-          demo: true,
           options: {
             select: {
               id: true,
               start: true,
+              startTime: true,
               duration: true,
             },
             orderBy: {
@@ -420,11 +407,12 @@ export const polls = router({
           message: "Poll not found",
         });
       }
+      const inviteLink = ctx.shortUrl(`/invite/${res.id}`);
 
       if (ctx.user.id === res.userId || res.adminUrlId === input.adminToken) {
-        return res;
+        return { ...res, inviteLink };
       } else {
-        return { ...res, adminUrlId: "" };
+        return { ...res, adminUrlId: "", inviteLink };
       }
     }),
   transfer: possiblyPublicProcedure
@@ -443,6 +431,77 @@ export const polls = router({
         },
       });
     }),
+  paginatedList: possiblyPublicProcedure
+    .input(
+      z.object({
+        pagination: z.object({
+          pageIndex: z.number(),
+          pageSize: z.number(),
+        }),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const [total, rows] = await prisma.$transaction([
+        prisma.poll.count({
+          where: {
+            userId: ctx.user.id,
+            deleted: false,
+          },
+        }),
+        prisma.poll.findMany({
+          where: {
+            userId: ctx.user.id,
+            deleted: false,
+          },
+          select: {
+            id: true,
+            title: true,
+            location: true,
+            createdAt: true,
+            timeZone: true,
+            adminUrlId: true,
+            participantUrlId: true,
+            status: true,
+            event: {
+              select: {
+                start: true,
+                duration: true,
+              },
+            },
+            options: {
+              select: {
+                id: true,
+                start: true,
+                duration: true,
+              },
+            },
+            closed: true,
+            participants: {
+              select: {
+                id: true,
+                name: true,
+              },
+              orderBy: [
+                {
+                  createdAt: "desc",
+                },
+                { name: "desc" },
+              ],
+            },
+          },
+          orderBy: [
+            {
+              createdAt: "desc",
+            },
+            { title: "asc" },
+          ],
+          skip: input.pagination.pageIndex * input.pagination.pageSize,
+          take: input.pagination.pageSize,
+        }),
+      ]);
+
+      return { total, rows };
+    }),
   list: possiblyPublicProcedure.query(async ({ ctx }) => {
     const polls = await prisma.poll.findMany({
       where: {
@@ -457,6 +516,7 @@ export const polls = router({
         timeZone: true,
         adminUrlId: true,
         participantUrlId: true,
+        status: true,
         event: {
           select: {
             start: true,
@@ -572,14 +632,21 @@ export const polls = router({
         eventStart = eventStart.tz(poll.timeZone, true);
       }
 
-      await prisma.event.create({
+      await prisma.poll.update({
+        where: {
+          id: input.pollId,
+        },
         data: {
-          pollId: poll.id,
-          optionId: input.optionId,
-          start: eventStart.toDate(),
-          duration: option.duration,
-          title: poll.title,
-          userId: ctx.user.id,
+          status: "finalized",
+          event: {
+            create: {
+              optionId: input.optionId,
+              start: eventStart.toDate(),
+              duration: option.duration,
+              title: poll.title,
+              userId: ctx.user.id,
+            },
+          },
         },
       });
 
@@ -687,7 +754,7 @@ export const polls = router({
           to: poll.user.email,
           props: {
             name: poll.user.name,
-            pollUrl: absoluteUrl(`/poll/${poll.id}`),
+            pollUrl: ctx.absoluteUrl(`/poll/${poll.id}`),
             location: poll.location,
             title: poll.title,
             attendees: poll.participants
@@ -711,7 +778,7 @@ export const polls = router({
             to: p.email,
             props: {
               name: p.name,
-              pollUrl: absoluteUrl(`/poll/${poll.id}`),
+              pollUrl: ctx.absoluteUrl(`/poll/${poll.id}`),
               location: poll.location,
               title: poll.title,
               hostName: poll.user?.name ?? "",
@@ -742,18 +809,16 @@ export const polls = router({
     )
     .mutation(async ({ input }) => {
       await prisma.$transaction([
-        prisma.event.delete({
-          where: {
-            pollId: input.pollId,
-          },
-        }),
         prisma.poll.update({
           where: {
             id: input.pollId,
           },
           data: {
-            eventId: null,
-            closed: false,
+            event: {
+              delete: true,
+            },
+            status: "live",
+            closed: false, // @deprecated
           },
         }),
       ]);
@@ -770,7 +835,8 @@ export const polls = router({
           id: input.pollId,
         },
         data: {
-          closed: true,
+          closed: true, // TODO (Luke Vella) [2023-12-05]:  Remove this
+          status: "paused",
         },
       });
     }),
@@ -796,6 +862,7 @@ export const polls = router({
           options: {
             select: {
               start: true,
+              startTime: true,
               duration: true,
             },
           },
@@ -848,6 +915,7 @@ export const polls = router({
         },
         data: {
           closed: false,
+          status: "live",
         },
       });
     }),

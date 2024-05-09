@@ -1,10 +1,9 @@
-import { CheckCircleIcon, PauseCircleIcon, RadioIcon } from "@rallly/icons";
+import { PollStatus } from "@rallly/database";
 import { cn } from "@rallly/ui";
+import { CheckCircleIcon, PauseCircleIcon, RadioIcon } from "lucide-react";
 
 import { Trans } from "@/components/trans";
 import { IconComponent } from "@/types";
-
-export type PollState = "live" | "paused" | "closed";
 
 const LabelWithIcon = ({
   icon: Icon,
@@ -16,18 +15,18 @@ const LabelWithIcon = ({
   className?: string;
 }) => {
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <Icon className="h-4 w-4" />
-      <span>{children}</span>
+    <span className={cn("inline-flex items-center gap-1.5", className)}>
+      <Icon className="size-4 -ml-0.5" />
+      <span className="font-medium">{children}</span>
     </span>
   );
 };
 
-export const PollStatus = ({
+export const PollStatusLabel = ({
   status,
   className,
 }: {
-  status: PollState;
+  status: PollStatus;
   className?: string;
 }) => {
   switch (status) {
@@ -43,7 +42,7 @@ export const PollStatus = ({
           <Trans i18nKey="pollStatusPaused" defaults="Paused" />
         </LabelWithIcon>
       );
-    case "closed":
+    case "finalized":
       return (
         <LabelWithIcon icon={CheckCircleIcon} className={className}>
           <Trans i18nKey="pollStatusClosed" defaults="Finalized" />
@@ -52,14 +51,18 @@ export const PollStatus = ({
   }
 };
 
-export const PollStatusBadge = ({ status }: { status: PollState }) => {
+export const PollStatusBadge = ({ status }: { status: PollStatus }) => {
   return (
-    <PollStatus
-      className={cn("rounded-full border py-0.5 pl-1.5 pr-3 text-sm", {
-        "border-blue-500 text-blue-500": status === "live",
-        "border-gray-500 text-gray-500": status === "paused",
-        "border-green-500 text-green-500": status === "closed",
-      })}
+    <PollStatusLabel
+      className={cn(
+        "whitespace-nowrap rounded-md border px-2 py-1 text-xs font-medium",
+        {
+          "border-pink-200 bg-pink-50 text-pink-600": status === "live",
+          "border-gray-200 bg-gray-100 text-gray-500": status === "paused",
+          "border-indigo-200 bg-indigo-50 text-indigo-600":
+            status === "finalized",
+        },
+      )}
       status={status}
     />
   );

@@ -1,9 +1,3 @@
-import { trpc } from "@rallly/backend";
-import {
-  MessageCircleIcon,
-  MoreHorizontalIcon,
-  TrashIcon,
-} from "@rallly/icons";
 import { Button } from "@rallly/ui/button";
 import {
   DropdownMenu,
@@ -13,6 +7,7 @@ import {
 } from "@rallly/ui/dropdown-menu";
 import { Textarea } from "@rallly/ui/textarea";
 import dayjs from "dayjs";
+import { MessageCircleIcon, MoreHorizontalIcon, TrashIcon } from "lucide-react";
 import { useTranslation } from "next-i18next";
 import * as React from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -21,6 +16,7 @@ import { Trans } from "@/components/trans";
 import { usePermissions } from "@/contexts/permissions";
 import { useRole } from "@/contexts/role";
 import { usePostHog } from "@/utils/posthog";
+import { trpc } from "@/utils/trpc/client";
 
 import { requiredString } from "../../utils/form-validation";
 import NameInput from "../name-input";
@@ -48,7 +44,7 @@ const Discussion: React.FunctionComponent = () => {
   );
   const posthog = usePostHog();
 
-  const queryClient = trpc.useContext();
+  const queryClient = trpc.useUtils();
 
   const addComment = trpc.polls.comments.add.useMutation({
     onSuccess: () => {
@@ -92,7 +88,7 @@ const Discussion: React.FunctionComponent = () => {
   return (
     <div className="divide-y">
       <div className="flex items-center gap-2 bg-gray-50 px-4 py-3 font-semibold">
-        <MessageCircleIcon className="h-5 w-5" /> {t("comments")} (
+        <MessageCircleIcon className="size-5" /> {t("comments")} (
         {comments.length})
       </div>
       {comments.length ? (
@@ -118,7 +114,7 @@ const Discussion: React.FunctionComponent = () => {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild={true}>
                             <button className="hover:text-foreground text-gray-500">
-                              <MoreHorizontalIcon className="h-4 w-4" />
+                              <MoreHorizontalIcon className="size-4" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
@@ -129,7 +125,7 @@ const Discussion: React.FunctionComponent = () => {
                                 });
                               }}
                             >
-                              <TrashIcon className="mr-2 h-4 w-4" />
+                              <TrashIcon className="mr-2 size-4" />
                               <Trans i18nKey="delete" />
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -137,7 +133,7 @@ const Discussion: React.FunctionComponent = () => {
                       )}
                     </div>
                   </div>
-                  <div className="w-fit whitespace-pre-wrap pl-8 leading-relaxed">
+                  <div className="ml-0.5 w-fit whitespace-pre-wrap pl-8 text-sm leading-relaxed">
                     <TruncatedLinkify>{comment.content}</TruncatedLinkify>
                   </div>
                 </div>
@@ -159,6 +155,7 @@ const Discussion: React.FunctionComponent = () => {
             <div>
               <Textarea
                 id="comment"
+                className="w-full"
                 autoFocus={true}
                 placeholder={t("commentPlaceholder")}
                 {...register("content", { validate: requiredString })}
@@ -170,7 +167,9 @@ const Discussion: React.FunctionComponent = () => {
                 key={session.user?.id}
                 control={control}
                 rules={{ validate: requiredString }}
-                render={({ field }) => <NameInput {...field} />}
+                render={({ field }) => (
+                  <NameInput error={!!formState.errors.authorName} {...field} />
+                )}
               />
             </div>
             <div className="flex justify-between gap-2">
@@ -193,7 +192,7 @@ const Discussion: React.FunctionComponent = () => {
           </form>
         ) : (
           <button
-            className="border-input text-muted-foreground flex w-full rounded border bg-transparent px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+            className="border-input text-muted-foreground flex w-full rounded border bg-transparent px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
             onClick={() => setIsWriting(true)}
           >
             <Trans

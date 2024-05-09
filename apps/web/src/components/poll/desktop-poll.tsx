@@ -1,3 +1,6 @@
+import { cn } from "@rallly/ui";
+import { Button } from "@rallly/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@rallly/ui/tooltip";
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
@@ -5,10 +8,7 @@ import {
   PlusIcon,
   ShrinkIcon,
   Users2Icon,
-} from "@rallly/icons";
-import { cn } from "@rallly/ui";
-import { Button } from "@rallly/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@rallly/ui/tooltip";
+} from "lucide-react";
 import { Trans, useTranslation } from "next-i18next";
 import * as React from "react";
 import { RemoveScroll } from "react-remove-scroll";
@@ -123,7 +123,7 @@ const DesktopPoll: React.FunctionComponent = () => {
           <div className="flex h-14 shrink-0 items-center justify-between rounded-t-md border-b bg-gradient-to-b from-gray-50 to-gray-100/50 px-4 py-3">
             <div>
               {mode !== "view" ? (
-                <div>
+                <p className="text-sm">
                   <Trans
                     t={t}
                     i18nKey="saveInstruction"
@@ -132,10 +132,10 @@ const DesktopPoll: React.FunctionComponent = () => {
                     }}
                     components={{ b: <strong /> }}
                   />
-                </div>
+                </p>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Users2Icon className="h-5 w-5 shrink-0" />
+                  <Users2Icon className="size-5 shrink-0" />
                   <div className="font-semibold">
                     {t("participants", { count: participants.length })} (
                     {participants.length})
@@ -163,7 +163,7 @@ const DesktopPoll: React.FunctionComponent = () => {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button disabled={x === 0} onClick={goToPreviousPage}>
-                        <ArrowLeftIcon className="h-4 w-4" />
+                        <ArrowLeftIcon className="size-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -182,7 +182,7 @@ const DesktopPoll: React.FunctionComponent = () => {
                           goToNextPage();
                         }}
                       >
-                        <ArrowRightIcon className="h-4 w-4" />
+                        <ArrowRightIcon className="size-4" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -222,7 +222,7 @@ const DesktopPoll: React.FunctionComponent = () => {
               ) : null}
             </div>
           </div>
-          {poll.options[0].duration !== 0 ? (
+          {poll.options[0]?.duration !== 0 && poll.timeZone ? (
             <div className="border-b bg-gray-50 p-3">
               <TimesShownIn />
             </div>

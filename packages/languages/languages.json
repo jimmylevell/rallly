@@ -1,4 +1,5 @@
 {
+  "eu": "Basque",
   "ca": "Català",
   "cs": "Česky",
   "da": "Dansk",
@@ -13,9 +14,11 @@
   "no": "Norsk",
   "pl": "Polski",
   "pt-BR": "Português - Brasil",
+  "ru": "Русский",
   "sk": "Slovenčina",
   "fi": "Suomi",
   "sv": "Svenska",
   "tr": "Türkçe",
-  "zh": "汉语"
+  "zh": "简体中文",
+  "zh-Hant": "繁體中文"
 }

@@ -1,5 +1,4 @@
-import { ArrowLeftIcon } from "@rallly/icons";
-import { absoluteUrl } from "@rallly/utils";
+import { ArrowLeftIcon } from "lucide-react";
 import { GetStaticPropsContext } from "next";
 import ErrorPage from "next/error";
 import Head from "next/head";
@@ -14,6 +13,7 @@ import { getBlogLayout } from "@/components/layouts/blog-layout";
 import { getAllPosts, getPostBySlug } from "@/lib/api";
 import markdownToHtml from "@/lib/markdownToHtml";
 import { NextPageWithLayout, Post } from "@/types";
+import { absoluteUrl } from "@/utils/absolute-url";
 import { getStaticTranslations } from "@/utils/page-translations";
 
 type Props = {
@@ -56,7 +56,7 @@ const Page: NextPageWithLayout<Props> = ({ post }) => {
           className="text-muted-foreground hover:text-primary inline-flex items-center gap-x-2 text-sm font-medium"
           href="/blog"
         >
-          <ArrowLeftIcon className="h-4 w-4" /> All Posts
+          <ArrowLeftIcon className="size-4" /> All Posts
         </Link>
       </nav>
       <article>
@@ -117,6 +117,8 @@ export async function getStaticProps(ctx: GetStaticPropsContext) {
       },
     };
   }
+
+  return res;
 }
 
 export async function getStaticPaths() {

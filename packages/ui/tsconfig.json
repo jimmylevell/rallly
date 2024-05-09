@@ -1,11 +1,11 @@
 {
-  "extends": "@rallly/tsconfig/react-library",
+  "extends": "@rallly/tsconfig/next.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
-    }
+      "@rallly/ui/*": ["./src/*"],
+    },
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules"],
 }

@@ -1,7 +1,8 @@
 import { Column, Row, Section } from "@react-email/components";
 
-import { EmailLayout } from "./components/email-layout";
-import { borderColor, Button, Text } from "./components/styled-components";
+import { defaultEmailContext, EmailContext } from "./_components/email-context";
+import { EmailLayout } from "./_components/email-layout";
+import { borderColor, Button, Text } from "./_components/styled-components";
 
 export interface FinalizeHostEmailProps {
   date: string;
@@ -13,6 +14,7 @@ export interface FinalizeHostEmailProps {
   location: string | null;
   pollUrl: string;
   attendees: string[];
+  ctx: EmailContext;
 }
 
 export const FinalizeHostEmail = ({
@@ -23,9 +25,10 @@ export const FinalizeHostEmail = ({
   dow = "Fri",
   date = "Friday, 12th June 2020",
   time = "6:00 PM to 11:00 PM BST",
+  ctx = defaultEmailContext,
 }: FinalizeHostEmailProps) => {
   return (
-    <EmailLayout recipientName={name} preview="Final date booked!">
+    <EmailLayout ctx={ctx} recipientName={name} preview="Final date booked!">
       <Text>
         <strong>{title}</strong> has been booked for:
       </Text>

@@ -6,9 +6,9 @@ import {
   useFloating,
 } from "@floating-ui/react-dom-interactions";
 import { Listbox } from "@headlessui/react";
-import { ChevronDownIcon } from "@rallly/icons";
 import clsx from "clsx";
 import dayjs from "dayjs";
+import { ChevronDownIcon } from "lucide-react";
 import * as React from "react";
 
 import { getDuration } from "@/utils/date-time-utils";
@@ -87,7 +87,7 @@ const TimePicker: React.FunctionComponent<TimePickerProps> = ({
             <Listbox.Button className="btn-default text-left">
               <span className="grow truncate">{dayjs(value).format("LT")}</span>
               <span className="pointer-events-none ml-2 flex">
-                <ChevronDownIcon className="h-5 w-5" />
+                <ChevronDownIcon className="size-5" />
               </span>
             </Listbox.Button>
           </div>
