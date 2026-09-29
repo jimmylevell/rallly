@@ -8,10 +8,7 @@ export const BillingPlan = ({
 }: React.PropsWithChildren<{ className?: string }>) => {
   return (
     <div
-      className={cn(
-        "space-y-4 rounded-md border bg-gradient-to-b from-white to-white/75 px-5 py-4 backdrop-blur-sm",
-        className,
-      )}
+      className={cn("space-y-4 rounded-xl border bg-card px-5 py-4", className)}
     >
       {children}
     </div>
@@ -26,7 +23,7 @@ export const BillingPlanHeader = ({
 };
 
 export const BillingPlanTitle = ({ children }: React.PropsWithChildren) => {
-  return <h3 className="font-semibold">{children}</h3>;
+  return <h3 className="font-bold">{children}</h3>;
 };
 
 export const BillingPlanDescription = ({
@@ -37,20 +34,10 @@ export const BillingPlanDescription = ({
 
 export const BillingPlanPrice = ({
   children,
-  discount,
 }: React.PropsWithChildren<{ discount?: React.ReactNode }>) => {
   return (
-    <div>
-      {discount ? (
-        <>
-          <span className="mr-2 text-xl font-bold line-through">
-            {children}
-          </span>
-          <span className="text-3xl font-bold">{discount}</span>
-        </>
-      ) : (
-        <span className="text-3xl font-bold">{children}</span>
-      )}
+    <div className="flex items-center gap-4">
+      <span className="font-bold text-3xl">{children}</span>
     </div>
   );
 };
@@ -75,7 +62,7 @@ export const BillingPlanPerk = ({
           !pro ? "text-gray-500" : "text-primary",
         )}
       />
-      <div className="text-sm">{children}</div>
+      <div className="text-muted-foreground text-sm">{children}</div>
     </li>
   );
 };

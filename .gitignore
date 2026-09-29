@@ -21,15 +21,10 @@ node_modules
 
 # debug
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # local env files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*.local
 
 # ts
 tsconfig.tsbuildinfo
@@ -39,3 +34,21 @@ tsconfig.tsbuildinfo
 
 # Jetbrains IDE
 .idea
+
+# Playwright
+playwright-report
+test-results
+
+# Screenshots tool output
+packages/screenshots/screenshots
+.kiro
+.vercel
+
+# Next
+next-env.d.ts
+
+# Claude worktrees
+.claude/worktrees
+.claude/launch.json
+# Radix -> Base UI migration reports (local skill state)
+.migration/

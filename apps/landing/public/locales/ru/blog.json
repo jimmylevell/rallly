@@ -1,5 +1,7 @@
 {
-  "recentPosts": "Последние сообщения",
-  "blogTitle": "Rallly - Блог",
-  "blogDescription": "Новости, обновления и анонсы о Rallly."
+  "blogDescription": "Новости, обновления и анонсы о Rallly.",
+  "blogFilterAll": "Все",
+  "blogPublishedOn": "Опубликовано",
+  "blogTitle": "Блог",
+  "blogWrittenBy": "Автор"
 }

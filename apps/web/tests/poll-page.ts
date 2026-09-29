@@ -1,47 +1,41 @@
-import { Page } from "@playwright/test";
-import { EditOptionsPage } from "tests/edit-options-page";
-import { InvitePage } from "tests/invite-page";
+import type { Page } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { EditOptionsPage } from "./edit-options-page";
+import { InvitePage } from "./invite-page";
 
 export class PollPage {
   constructor(public readonly page: Page) {}
 
-  async closeDialog() {
-    const page = this.page;
-
-    const dialog = page.getByRole("dialog");
-
-    await dialog.waitFor({ state: "visible" });
-
-    const closeDialogButton = dialog.getByRole("button", { name: "Close" });
-
-    await closeDialogButton.waitFor({ state: "visible" });
-
-    await closeDialogButton.click();
+  async closeShareDialog() {
+    const dialog = this.page.getByRole("dialog", { name: "Share" });
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(dialog).toBeHidden();
   }
 
   async addComment() {
     const page = this.page;
 
-    await page.getByText("Leave a comment on this poll").click();
-    await page
-      .getByPlaceholder("Leave a comment on this poll")
-      .fill("This is a comment!");
-    await page.getByPlaceholder("Your name…").fill("Test user");
+    await page.getByRole("button", { name: "Comments" }).click();
 
-    await page.getByRole("button", { name: "Add Comment" }).click();
+    const sheet = page.getByRole("dialog", { name: "Comments" });
+    await sheet.getByPlaceholder("Write a comment").fill("This is a comment!");
+    await sheet.getByPlaceholder("Your name…").fill("Test user");
+
+    await sheet.getByRole("button", { name: "Add comment" }).click();
   }
 
   async openShareDialog() {
-    const page = this.page;
-
-    await page.getByRole("button", { name: "Share" }).click();
-
-    return page.getByRole("dialog");
+    const dialog = this.page.getByRole("dialog", { name: "Share" });
+    if (!(await dialog.isVisible())) {
+      await this.page.getByRole("button", { name: "Share" }).click();
+    }
+    await expect(dialog).toBeVisible();
+    return dialog;
   }
 
   async copyInviteLink() {
-    this.openShareDialog();
-    await this.page.getByRole("button", { name: "invite/" }).click();
+    const dialog = await this.openShareDialog();
+    await dialog.getByRole("button", { name: "Copy" }).click();
     return (await this.page.evaluate(
       "navigator.clipboard.readText()",
     )) as string;
@@ -73,7 +67,10 @@ export class PollPage {
       await page.type('[placeholder="jessie.smith@example.com"]', email);
     }
 
-    await page.click("text='Submit'");
+    await page.click("text='Save availability'");
+
+    await expect(page.getByText("Your response has been saved")).toBeVisible();
+    await page.click("button >> text='Back to poll'");
   }
 
   async gotoInvitePage() {

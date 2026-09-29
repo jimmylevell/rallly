@@ -1,4 +1,6 @@
+"use client";
 import { cn } from "@rallly/ui";
+import { Button } from "@rallly/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,22 +10,24 @@ import {
   DialogTrigger,
 } from "@rallly/ui/dialog";
 import { Label } from "@rallly/ui/label";
-import dayjs from "dayjs";
 import { GlobeIcon } from "lucide-react";
 import React from "react";
 import { useInterval } from "react-use";
-import spacetime from "spacetime";
-import soft from "timezone-soft";
-
 import { TimeFormatPicker } from "@/components/time-format-picker";
 import { TimeZoneSelect } from "@/components/time-zone-picker/time-zone-select";
-import { Trans } from "@/components/trans";
-import { usePreferences } from "@/contexts/preferences";
-import { useDayjs } from "@/utils/dayjs";
+import { getCityFromTimezoneId } from "@/components/time-zone-picker/timezone-data";
+import { Trans } from "@/i18n/client";
+import { useDateTimeConfig } from "@/lib/datetime/client";
+import { useDeviceDateTime } from "@/lib/datetime/device";
+import { getLocaleDefaults } from "@/lib/datetime/locales";
+import { Time } from "@/lib/datetime/time";
 
-export const TimePreferences = () => {
-  const { updatePreferences } = usePreferences();
-  const { timeFormat, timeZone } = useDayjs();
+const TimePreferences = () => {
+  const { setTimeZone, setTimeFormat } = useDeviceDateTime();
+  const { locale, timeZone, timeFormat } = useDateTimeConfig();
+
+  // When there's no explicit preference, show the locale's default format.
+  const resolvedTimeFormat = timeFormat ?? getLocaleDefaults(locale).timeFormat;
 
   return (
     <div className="grid gap-4">
@@ -31,72 +35,42 @@ export const TimePreferences = () => {
         <Label>
           <Trans i18nKey="timeZone" />
         </Label>
-        <TimeZoneSelect
-          value={timeZone}
-          onValueChange={(newTimeZone) => {
-            updatePreferences({ timeZone: newTimeZone });
-          }}
-        />
+        <TimeZoneSelect value={timeZone} onValueChange={setTimeZone} />
       </div>
       <div className="grid gap-2">
         <Label>
           <Trans i18nKey="timeFormat" />
         </Label>
-        <TimeFormatPicker
-          value={timeFormat}
-          onChange={(newTimeFormat) => {
-            updatePreferences({ timeFormat: newTimeFormat });
-          }}
-        />
+        <TimeFormatPicker value={resolvedTimeFormat} onChange={setTimeFormat} />
       </div>
     </div>
   );
 };
 
-export const Clock = ({ className }: { className?: string }) => {
-  const { timeZone, timeFormat } = useDayjs();
-  const timeZoneDisplayFormat = soft(timeZone)[0];
-  const now = spacetime.now(timeZone);
-  const standardAbbrev = timeZoneDisplayFormat.standard.abbr;
-  const dstAbbrev = timeZoneDisplayFormat.daylight?.abbr;
-  const abbrev = now.isDST() ? dstAbbrev : standardAbbrev;
-  const [time, setTime] = React.useState(new Date());
+const Clock = ({ className }: { className?: string }) => {
+  const [time, setTime] = React.useState(() => new Date());
   useInterval(() => {
     setTime(new Date());
   }, 1000);
 
   return (
-    <span
-      key={timeFormat}
+    <Time
+      value={time}
+      preset="time"
+      showTimeZone
       className={cn("inline-block font-medium tabular-nums", className)}
-    >{`${dayjs(time).tz(timeZone).format("LT")} ${abbrev}`}</span>
+    />
   );
 };
 
-export const TimesShownIn = () => {
-  const { timeZone } = useDayjs();
-
-  return (
-    <ClockPreferences>
-      <button className="inline-flex items-center gap-x-2 text-sm hover:underline">
-        <GlobeIcon className="size-4" />
-        <Trans
-          i18nKey="timeShownIn"
-          values={{ timeZone: timeZone.replaceAll("_", " ") }}
-        />
-      </button>
-    </ClockPreferences>
-  );
-};
-
-export const ClockPreferences = ({ children }: React.PropsWithChildren) => {
+const ClockPreferences = ({ children }: { children: React.ReactElement }) => {
   return (
     <Dialog modal={false}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger render={children} />
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>
-            <Trans i18nKey="clockPreferences" defaults="Clock Preferences" />
+            <Trans i18nKey="clockPreferences" defaults="Clock preferences" />
           </DialogTitle>
           <DialogDescription>
             <Trans
@@ -105,11 +79,32 @@ export const ClockPreferences = ({ children }: React.PropsWithChildren) => {
             />
           </DialogDescription>
         </DialogHeader>
-        <div className="bg-muted grid h-24 items-center justify-center rounded-md text-2xl font-bold">
+        <div className="grid h-24 items-center justify-center rounded-md bg-muted font-bold text-2xl">
           <Clock />
         </div>
         <TimePreferences />
       </DialogContent>
     </Dialog>
+  );
+};
+
+export const TimesShownIn = () => {
+  const { timeZone } = useDateTimeConfig();
+
+  if (!timeZone) {
+    return null;
+  }
+
+  return (
+    <ClockPreferences>
+      <Button type="button" variant="ghost">
+        <GlobeIcon data-icon="inline-start" />
+        <Trans
+          i18nKey="cityTime"
+          defaults="{city} time"
+          values={{ city: getCityFromTimezoneId(timeZone) }}
+        />
+      </Button>
+    </ClockPreferences>
   );
 };

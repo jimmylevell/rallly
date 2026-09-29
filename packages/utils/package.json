@@ -2,6 +2,19 @@
   "name": "@rallly/utils",
   "version": "0.0.0",
   "private": true,
-  "main": "index.ts",
-  "types": "index.ts"
+  "scripts": {
+    "test:unit": "vitest run",
+    "type-check": "tsc --noEmit"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "dependencies": {
+    "nanoid": "^5.0.9"
+  },
+  "devDependencies": {
+    "@rallly/tsconfig": "workspace:*",
+    "@types/node": "^24.1.0",
+    "vitest": "^4.1.11"
+  }
 }

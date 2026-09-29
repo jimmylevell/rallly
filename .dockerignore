@@ -3,7 +3,7 @@ node_modules
 .github
 .vscode
 tsconfig.tsbuildinfo
-.env
+.env*
 .sentryclirc
 sentry.properties
 Dockerfile
@@ -11,3 +11,11 @@ docker-compose.yml
 /docs
 README.md
 node_modules
+
+# Build outputs
+apps/*/.next
+apps/*/dist
+packages/*/dist
+
+# Turbo prune output
+out/

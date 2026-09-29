@@ -1,5 +1,5 @@
-import clsx from "clsx";
-import * as React from "react";
+import { cn } from "@rallly/ui";
+import type * as React from "react";
 
 export interface DateCardProps {
   day: string;
@@ -15,15 +15,15 @@ const DateCard: React.FunctionComponent<DateCardProps> = ({
 }) => {
   return (
     <div
-      className={clsx(
-        "relative inline-flex size-12 flex-col rounded-md border bg-gray-50 text-center text-slate-800",
+      className={cn(
+        "relative inline-flex size-12 flex-col rounded-lg border bg-card text-center text-card-foreground",
         className,
       )}
     >
-      <div className="text-muted-foreground border-b border-gray-200 text-xs font-normal leading-4">
+      <div className="border-b font-normal text-muted-foreground text-xs leading-4">
         {month}
       </div>
-      <div className="flex grow items-center justify-center rounded-b-md bg-white text-lg font-semibold leading-none tracking-tight">
+      <div className="flex grow items-center justify-center rounded-b-md font-semibold text-lg leading-none tracking-tight">
         {day}
       </div>
     </div>

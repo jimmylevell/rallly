@@ -2,7 +2,8 @@ import * as React from "react";
 import { useList } from "react-use";
 
 import { useRequiredContext } from "../use-required-context";
-import Modal, { ModalProps } from "./modal";
+import type { ModalProps } from "./modal";
+import Modal from "./modal";
 
 export interface ModalProviderProps {
   children?: React.ReactNode;
@@ -70,7 +71,6 @@ const ModalProvider: React.FunctionComponent<ModalProviderProps> = ({
           visible={true}
           {...modal.config}
           content={modal.content}
-          footer={null}
           onCancel={() => {
             remove(id);
           }}
@@ -78,6 +78,7 @@ const ModalProvider: React.FunctionComponent<ModalProviderProps> = ({
       ))}
       {modals.map((props, i) => (
         <Modal
+          // biome-ignore lint/suspicious/noArrayIndexKey: Fix this later
           key={i}
           visible={true}
           {...props}

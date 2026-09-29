@@ -1,14 +1,8 @@
-import * as LabelPrimitive from "@radix-ui/react-label";
-import { Slot } from "@radix-ui/react-slot";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { useRender } from "@base-ui/react/use-render";
 import * as React from "react";
-import {
-  Controller,
-  ControllerProps,
-  FieldPath,
-  FieldValues,
-  FormProvider,
-  useFormContext,
-} from "react-hook-form";
+import type { ControllerProps, FieldPath, FieldValues } from "react-hook-form";
+import { Controller, FormProvider, useFormContext } from "react-hook-form";
 
 import { Label } from "./label";
 import { cn } from "./lib/utils";
@@ -78,22 +72,22 @@ const FormItem = React.forwardRef<
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div ref={ref} className={cn("space-y-2.5", className)} {...props} />
+      <div ref={ref} className={cn("grid gap-1", className)} {...props} />
     </FormItemContext.Provider>
   );
 });
 FormItem.displayName = "FormItem";
 
 const FormLabel = React.forwardRef<
-  React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
+  HTMLLabelElement,
+  React.ComponentPropsWithoutRef<typeof Label>
 >(({ className, ...props }, ref) => {
-  const { error, formItemId } = useFormField();
+  const { formItemId } = useFormField();
 
   return (
     <Label
       ref={ref}
-      className={cn(error && "text-destructive", className)}
+      className={cn("font-normal text-sm", className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -101,28 +95,34 @@ const FormLabel = React.forwardRef<
 });
 FormLabel.displayName = "FormLabel";
 
-const FormControl = React.forwardRef<
-  React.ElementRef<typeof Slot>,
-  React.ComponentPropsWithoutRef<typeof Slot>
->(({ ...props }, ref) => {
+function FormControl({
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLElement>) {
   const { error, formItemId, formDescriptionId, formMessageId } =
     useFormField();
 
-  return (
-    <Slot
-      ref={ref}
-      id={formItemId}
-      aria-describedby={
-        !error
+  const element = useRender({
+    defaultTagName: "div",
+    render: React.isValidElement<Record<string, unknown>>(children)
+      ? children
+      : undefined,
+    props: mergeProps(
+      {
+        id: formItemId,
+        "aria-describedby": !error
           ? `${formDescriptionId}`
-          : `${formDescriptionId} ${formMessageId}`
-      }
-      aria-invalid={!!error}
-      {...props}
-    />
-  );
-});
-FormControl.displayName = "FormControl";
+          : `${formDescriptionId} ${formMessageId}`,
+        "aria-invalid": !!error,
+      },
+      props,
+    ),
+  });
+  if (!React.isValidElement(children)) {
+    return null;
+  }
+  return element;
+}
 
 const FormDescription = React.forwardRef<
   HTMLParagraphElement,
@@ -156,7 +156,7 @@ const FormMessage = React.forwardRef<
     <p
       ref={ref}
       id={formMessageId}
-      className={cn("text-destructive text-sm font-medium", className)}
+      className={cn("text-destructive text-sm", className)}
       {...props}
     >
       {body}

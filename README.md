@@ -1,112 +1,72 @@
 <div align="center">
-  
-<img src="./assets/images/logo-color.svg" width="200px" alt="Rallly" />
 
-</div>
-<br />
-<div align="center">
-  
-[![Actions Status](https://github.com/lukevella/rallly/workflows/CI/badge.svg?branch=main)](https://github.com/lukevella/rallly/actions)
+<img src="./assets/images/app-icon.svg" width="96" height="96" alt="" />
+
+# Rallly
+
+**Schedule group meetings, without the back-and-forth**
+
+[**Website**](https://rallly.co) · [**Documentation**](https://support.rallly.co) · [**Discord**](https://discord.gg/uzg4ZcHbuM)
+
+[![Actions Status](https://github.com/lukevella/rallly/actions/workflows/ci.yml/badge.svg)](https://github.com/lukevella/rallly/actions)
 [![Crowdin](https://badges.crowdin.net/rallly/localized.svg)](https://crowdin.com/project/rallly)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-orange.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Discord](https://img.shields.io/badge/-Join%20Chat-7289DA?logo=discord&logoColor=white)](https://discord.gg/uzg4ZcHbuM)
-[![Donate](https://img.shields.io/badge/-Donate%20with%20Paypal-white?logo=paypal)](https://www.paypal.com/donate/?hosted_button_id=7QXP2CUBLY88E)
+[![Donate](https://img.shields.io/badge/-Donate%20with%20Paypal-blue?logo=paypal)](https://www.paypal.com/donate/?hosted_button_id=7QXP2CUBLY88E)
 
 </div>
 
-<img src="./assets/images/splash.png" alt="Rallly" />
+<img src="./assets/images/screenshot.png" alt="A Rallly poll showing participants' availability across four time slots" />
 
-Schedule group meetings with friends, colleagues and teams. Create meeting polls to find the best date and time to organize an event based on your participants' availability. Save time and avoid back-and-forth emails.
+Rallly is an open-source scheduling tool that helps you find the best date and time to meet. Create a poll with a few options, share the link, and let your participants vote on when they're available. No more back-and-forth emails.
 
-Built with [Next.js](https://github.com/vercel/next.js/), [Prisma](https://github.com/prisma/prisma), [tRPC](https://github.com/trpc/trpc) & [TailwindCSS](https://github.com/tailwindlabs/tailwindcss)
+## ✨ Features
 
-## Self-hosting
+- 📅 **Date & time polls** — Propose multiple options and find what works for everyone
+- 🗳️ **No account needed to vote** — Participants just open the link and respond
+- 📊 **Availability grid** — See everyone's responses at a glance
+- 💬 **Comments** — Discuss the details right on the poll
+- 🔔 **Notifications** — Get notified when participants respond
+- ✅ **Finalize a date** — Pick the winning option and notify everyone
+- 🌍 **10+ languages** — Community-translated via [Crowdin](https://crowdin.com/project/rallly)
+- 🔒 **Open source & self-hostable** — Own your data
 
-Check out the [self-hosting docs](https://support.rallly.co/self-hosting) for more information on running your own instance of Rallly.
+## ☁️ Cloud version
 
-## Get started
+The quickest way to get started is the hosted version. Create your first poll in seconds, no installation required.
 
-1. Clone the repository switch to the project directory
+**[Try Rallly free →](https://rallly.co)**
 
-   ```bash
-   git clone https://github.com/lukevella/rallly.git
-   cd rallly
-   ```
+## 🐳 Self-hosting
 
-2. Install dependencies
+Prefer to run your own instance? Rallly ships as a Docker image and can be self-hosted in minutes.
 
-   ```
-   yarn
-   ```
+See the [self-hosting docs](https://support.rallly.co/self-hosting) for installation and [configuration options](https://support.rallly.co/self-hosting/configuration-options).
 
-3. Setup environment variables
+## 🛠️ Built with
 
-   ```bash
-   cp sample.env .env
-   ```
+[Next.js](https://github.com/vercel/next.js/) · [Prisma](https://github.com/prisma/prisma) · [tRPC](https://github.com/trpc/trpc) · [TailwindCSS](https://github.com/tailwindlabs/tailwindcss)
 
-   Create a `.env` file by copying `sample.env` then open it and set the required [configuration options](https://support.rallly.co/self-hosting/configuration-options).
+## 🤝 Contributing
 
-4. Setup the database
+Contributions are welcome! Have a look at the [contributing guide](CONTRIBUTING.md) to get started with local development and find out how you can help.
 
-   If you don't have a postgres database running locally, you can spin up a new database using docker by running:
+- 🌐 **Translators** — Help [translate Rallly](https://support.rallly.co/contribute/translations) into your language
+- 🔐 **Security** — Found a vulnerability? See our [security policy](SECURITY.md)
+- 🤝 **Community** — Please read our [Code of Conduct](CODE_OF_CONDUCT.md)
 
-   ```
-   yarn dx
-   ```
-
-   If you already have a postgres database, you can run the migrations and seed the database by running:
-
-   ```
-   yarn db:setup
-   ```
-
-   This will:
-
-   - run migrations to create the database schema
-   - seed the database with test users and random data
-
-5. Start the Next.js server
-
-   ```
-   yarn dev
-   ```
-
-## Contributors
-
-Please read our [contributing guide](CONTRIBUTING.md) to learn about how to contribute to this project.
-
-### Translators 🌐
-
-You can help translate Rallly to another language by following our [guide for translators](https://support.rallly.co/contribute/translations).
-
-## License
+## 📜 License
 
 Rallly is open-source under the GNU Affero General Public License Version 3 (AGPLv3) or any later version. See [LICENSE](LICENSE) for more detail.
 
-## Sponsors
+## 💚 Sponsors
 
 Thank you to our sponsors for making this project possible.
 
-<a href="https://github.com/cpnielsen" target="_blank"><img src="https://avatars.githubusercontent.com/u/1258576?v=4" width="48" height="48" /></a>&nbsp;
-<a href="https://github.com/iamericfletcher" target="_blank"><img src="https://avatars.githubusercontent.com/u/64165327?v=4" width="48" height="48" /></a>&nbsp;
-<a href="https://github.com/arcticFox-git" target="_blank"><img src="https://avatars.githubusercontent.com/u/86988982?v=4" width="48" height="48" /></a>&nbsp;
-<a href="https://github.com/zakwear" target="_blank"><img src="https://avatars.githubusercontent.com/u/55545774?v=4" width="48" height="48" /></a>&nbsp;
-<a href="https://github.com/jonnymarshall" target="_blank"><img src="https://avatars.githubusercontent.com/u/42963069?v=4" width="48" height="48" /></a>&nbsp;
-<a href="https://github.com/maximelouet" target="_blank"><img src="https://avatars.githubusercontent.com/u/8074940?v=4" width="48" height="48" /></a>&nbsp;
-
 [Become a sponsor &rarr;](https://github.com/sponsors/lukevella)
 
-And thank you to these companies for sponsoring and showing support for this project.
+<br />
 
-<p>
-<a href="https://appwrite.io?utm_source=rallly"><img src="./assets/images/appwrite.svg" alt="appwrite" height="24" /></a>&nbsp;&nbsp;&nbsp;<!--
---><a href="https://vercel.com/?utm_source=rallly&utm_campaign=oss"><img src="./assets/images/vercel-logotype-dark.svg#gh-light-mode-only" alt="Powered by Vercel" height="24" /></a>&nbsp;&nbsp;&nbsp;<!--
---><a href="https://ura.design?utm_source=rallly"><img height="24" alt="Ura Design" src="./assets/images/ura-logo-blue.svg"></a>
-</p>
-<p>
-<a href="https://m.do.co/c/f91efc9c9e50"><img src="./apps/landing/public/digitalocean.svg" alt="Digital Ocean" height="24" /></a>&nbsp;&nbsp;&nbsp;<!--
---><a href="https://sentry.io?utm_source=rallly"><img src="./apps/landing/public/sentry.svg" alt="Sentry" height="24" /></a>&nbsp;&nbsp;&nbsp;<!--
---><a href="https://cloudron.io?utm_source=rallly"><img src="./assets/images/cloudron-logo.svg" alt="Cloudron" height="30"></a>&nbsp;&nbsp;&nbsp;<!--
---><a href="https://featurebase.app?utm_source=rallly"><img src="./assets/images/featurebase.svg" alt="Featurebase" height="28"></a>
-</p>
+<a href="https://vercel.com/open-source-program">
+  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge-2026.svg" height="40" />
+</a>

@@ -1,5 +1,7 @@
 {
-  "recentPosts": "Seneste indlæg",
-  "blogTitle": "Rallly - Blog",
-  "blogDescription": "Nyheder, opdateringer og annoncering om Rallly."
+  "blogDescription": "Nyheder, opdateringer og meddelelser om Rallly.",
+  "blogFilterAll": "Alle",
+  "blogPublishedOn": "Udgivet den",
+  "blogTitle": "Blog",
+  "blogWrittenBy": "Skrevet af"
 }

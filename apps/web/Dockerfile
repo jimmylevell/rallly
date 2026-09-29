@@ -1,22 +1,32 @@
-FROM node:18 AS builder
+FROM node:24 AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
+FROM node:24-slim AS base-slim
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+# --- Builder Stage ---
+FROM base AS builder
 WORKDIR /app
-RUN yarn global add turbo
+COPY package.json .
+RUN pnpm add -g turbo
 COPY . .
 RUN turbo prune --scope=@rallly/web --docker
 
-FROM node:18 AS installer
-
+# --- Installer Stage ---
+FROM base AS installer
 WORKDIR /app
-COPY .gitignore .gitignore
+COPY package.json .
 COPY --from=builder /app/out/json/ .
-COPY --from=builder /app/out/yarn.lock ./yarn.lock
-RUN yarn --network-timeout 1000000
+COPY --from=builder /app/out/pnpm-lock.yaml ./
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Build the project
 COPY --from=builder /app/out/full/ .
 COPY turbo.json turbo.json
-RUN yarn db:generate
+RUN pnpm db:generate
 
 ARG APP_VERSION
 ENV NEXT_PUBLIC_APP_VERSION=$APP_VERSION
@@ -25,45 +35,63 @@ ARG SELF_HOSTED
 #ENV NEXT_PUBLIC_SELF_HOSTED=$SELF_HOSTED
 ENV NEXT_PUBLIC_SELF_HOSTED=true
 
-RUN yarn build
+RUN SKIP_ENV_VALIDATION=1 pnpm build
 
-FROM node:18 AS runner
+# --- Runner Stage ---
+FROM base-slim AS runner
 
-RUN apt-get update && apt-get install -y dos2unix
+# Disable Next.js telemetry for self-hosted instances
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Install required system packages for Prisma
+# (see https://www.prisma.io/docs/orm/reference/system-requirements)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    openssl \
+    zlib1g \
+    libgcc-s1 \
+    curl \
+    dos2unix \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-RUN yarn global add prisma
 # Don't run production as root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN addgroup --system nodejs \
+  && adduser --system --ingroup nodejs --home /app --shell /bin/bash nextjs
+
+# Install prisma for runtime migrations (must be resolvable from /app)
+RUN npm add prisma@7
+
+# Copy prisma schema and config for migrations
+COPY --from=builder /app/scripts/docker-start.sh ./
+COPY --from=builder /app/scripts/set_env_secrets.sh ./
+RUN dos2unix docker-start.sh set_env_secrets.sh && chmod +x docker-start.sh set_env_secrets.sh
+COPY --from=builder /app/packages/database/prisma ./prisma
+COPY --from=builder /app/packages/database/prisma.config.ts ./
+
+# Copy Next.js standalone output
+COPY --chown=nextjs:nodejs --from=installer /app/apps/web/.next/standalone ./
+COPY --chown=nextjs:nodejs --from=installer /app/apps/web/.next/static ./apps/web/.next/static
+COPY --chown=nextjs:nodejs --from=installer /app/apps/web/public ./apps/web/public
+
 USER nextjs
 
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/docker-start.sh ./
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/set_env_secrets.sh ./
-COPY --from=builder --chown=nextjs:nodejs /app/packages/database/prisma ./prisma
+ENV HOME=/app
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+ENV LOG_LEVEL=warn
 
-USER root
-RUN dos2unix docker-start.sh
-RUN chmod +x docker-start.sh
-USER nextjs
+# Rallly cloud API base URL. Set here so only self-hosted images phone home;
+# local dev and cloud builds leave it unset and skip outbound calls entirely.
+ENV API_BASE_URL=https://api.rallly.co
 
-COPY --from=installer /app/apps/web/next.config.js .
-COPY --from=installer /app/apps/web/package.json .
+ENV NEXT_PUBLIC_SELF_HOSTED=true
 
-ENV PORT 3000
 EXPOSE 3000
 
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=installer --chown=nextjs:nodejs /app/apps/web/public ./apps/web/public
-
-RUN sed -i "s/const hostname = process\.env\.HOSTNAME || '0\.0\.0\.0'/const hostname = '0\.0\.0\.0'/g" apps/web/server.js
-
-ARG SELF_HOSTED
-ENV NEXT_PUBLIC_SELF_HOSTED=$SELF_HOSTED
-ENV HOSTNAME=0.0.0.0
+# --noproxy '*': curl honors http_proxy/no_proxy env, and a probe of our own
+# loopback must never depend on the host's proxy policy.
+HEALTHCHECK CMD curl --fail --noproxy '*' http://localhost:${PORT}/api/status || exit 1
 
 CMD ["/app/docker-start.sh"]

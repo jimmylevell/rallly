@@ -1,0 +1,1683 @@
+import { Prisma, prisma } from "@rallly/database";
+import { sendFinalizeHostEmail } from "@rallly/emails/templates/finalized-host";
+import { sendFinalizeParticipantEmail } from "@rallly/emails/templates/finalized-participant";
+import { sendNewPollEmail } from "@rallly/emails/templates/new-poll";
+import { absoluteUrl, shortUrl } from "@rallly/utils/absolute-url";
+import { nanoid } from "@rallly/utils/nanoid";
+import { TRPCError } from "@trpc/server";
+import { after } from "next/server";
+import * as z from "zod";
+import { getInstanceBranding, getSpaceBranding } from "@/emails/branding";
+import { toEmailConferencing } from "@/emails/conferencing";
+import { recordPollActivities } from "@/features/activity/mutations";
+import {
+  getConnectedConferencingProviders,
+  parsePollConferencing,
+} from "@/features/conferencing/data";
+import type {
+  Conferencing,
+  PollConferencing,
+} from "@/features/conferencing/schema";
+import { pollConferencingSchema } from "@/features/conferencing/schema";
+import { createConferencingMeeting } from "@/features/conferencing/service";
+import {
+  conferencingProviderLabels,
+  getConferencingUri,
+  moderatedLinkText,
+} from "@/features/conferencing/utils";
+import { getInstancePolicy } from "@/features/instance-policy/data";
+import { moderateContent } from "@/features/moderation/mutations";
+import {
+  canUserManagePoll,
+  getPolls,
+  hasPollAdminAccess,
+} from "@/features/poll/data";
+import { MAX_POLL_DESCRIPTION_LENGTH } from "@/features/poll/schema";
+import { formatEventDateTime } from "@/features/scheduled-event/utils";
+import { getActiveSpaceForUser } from "@/features/space/data";
+import {
+  isSpaceAttributionHidden,
+  isSpaceBrandingActive,
+} from "@/features/space/utils";
+import { scheduleWebhookDispatch } from "@/features/webhook/mutations";
+import { resolveTimeZoneAtWallTime } from "@/lib/datetime/time-zone-overrides";
+import { dayjs } from "@/lib/dayjs";
+import { AppError } from "@/lib/errors/app-error";
+import { identifyGroup, track } from "@/lib/posthog";
+import { createIcsEvent } from "@/lib/utils/ics";
+import {
+  createRateLimitMiddleware,
+  possiblyPublicProcedure,
+  privateProcedure,
+  proProcedure,
+  publicProcedure,
+  requireUserMiddleware,
+  router,
+  spaceProcedure,
+} from "../trpc";
+import { invites } from "./polls/invites";
+import { getScheduledEventTimes } from "./polls/scheduled-event-times";
+import { timeZoneInput } from "./polls/schema";
+
+const collapseNewlines = (s: string) => s.replace(/\n{3,}/g, "\n\n");
+
+// Mirrors the auto-close-polls house-keeping task: an option ends at
+// start + duration, with all-day options (duration 0) treated as 24h.
+const optionEndsInFuture = (option: { startTime: Date; duration: number }) =>
+  dayjs(option.startTime)
+    .add(option.duration === 0 ? 24 * 60 : option.duration, "minute")
+    .isAfter(dayjs());
+
+async function mintConferencing({
+  userId,
+  conferencing,
+  title,
+  start,
+  end,
+  timeZone,
+}: {
+  userId: string;
+  conferencing: PollConferencing | null;
+  title: string;
+  start: Date;
+  end: Date;
+  timeZone: string | null | undefined;
+}): Promise<Conferencing | null> {
+  if (!conferencing) {
+    return null;
+  }
+
+  // A pasted link is already the stored shape; nothing to mint. A call named
+  // without a link has nothing the event can carry.
+  if (conferencing.provider === "custom") {
+    return conferencing.uri
+      ? { provider: "custom", uri: conferencing.uri, label: conferencing.label }
+      : null;
+  }
+
+  const result = await createConferencingMeeting({
+    userId,
+    provider: conferencing.provider,
+    title,
+    start,
+    end,
+    timeZone,
+  });
+
+  if (result.ok) {
+    return result.conferencing;
+  }
+
+  const label = conferencingProviderLabels[conferencing.provider];
+  const code = (
+    {
+      not_connected: "CONFERENCING_NOT_CONNECTED",
+      cannot_host: "CONFERENCING_CANNOT_HOST",
+      provider_error: "CONFERENCING_FAILED",
+    } as const
+  )[result.reason];
+  throw new TRPCError({
+    code: "PRECONDITION_FAILED",
+    message: `${label} meeting could not be created (${code})`,
+    cause: new AppError({ code, message: `${label}: ${result.reason}` }),
+  });
+}
+
+export const polls = router({
+  invites,
+  infiniteChronological: spaceProcedure
+    .input(
+      z.object({
+        status: z.enum(["open", "closed", "scheduled", "canceled"]).optional(),
+        search: z.string().optional(),
+        member: z.string().optional(),
+        cursor: z.number().optional().default(1),
+        limit: z.number().default(20),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { cursor: page, limit: pageSize, status, search, member } = input;
+
+      const result = await getPolls({
+        status,
+        q: search,
+        member,
+        page,
+        pageSize,
+        scope: ctx.contentScope,
+      });
+
+      let nextCursor: number | undefined;
+      if (result.hasNextPage) {
+        nextCursor = page + 1;
+      }
+
+      return {
+        polls: result.polls.map((poll) => ({
+          ...poll,
+          inviteLink: shortUrl(`/invite/${poll.id}`),
+        })),
+        nextCursor,
+        hasNextPage: result.hasNextPage,
+        total: result.total,
+      };
+    }),
+  make: possiblyPublicProcedure
+    .input(
+      z.object({
+        title: z.string().trim().min(1),
+        timeZone: timeZoneInput,
+        location: z.string().trim().optional(),
+        conferencing: pollConferencingSchema.optional(),
+        description: z
+          .string()
+          .trim()
+          .max(MAX_POLL_DESCRIPTION_LENGTH)
+          .transform(collapseNewlines)
+          .optional(),
+        hideParticipants: z.boolean().optional(),
+        hideScores: z.boolean().optional(),
+        disableComments: z.boolean().optional(),
+        allowTentativeVotes: z.boolean().optional(),
+        requireParticipantEmail: z.boolean().optional(),
+        options: z
+          .object({
+            startDate: z.string(),
+            endDate: z.string().optional(),
+          })
+          .array()
+          .min(1),
+      }),
+    )
+    .use(requireUserMiddleware)
+    .use(createRateLimitMiddleware("create_poll", 20, "1 h"))
+    .mutation(async ({ ctx, input }) => {
+      const activeSpace = ctx.user.isGuest
+        ? null
+        : await getActiveSpaceForUser(ctx.user.id);
+
+      if (!ctx.user.isGuest && !activeSpace) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You must be a member of a space to create a poll",
+        });
+      }
+
+      const moderation = await moderateContent({
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        content: {
+          Title: input.title,
+          Description: input.description || "",
+          Location: input.location || "",
+          // The pasted URL goes in with its label so a benign label cannot
+          // hide a scam destination from moderation. Only the origin and
+          // path: a Zoom join link carries the meeting password in its query.
+          Conferencing:
+            input.conferencing?.provider === "custom"
+              ? `${input.conferencing.label} ${moderatedLinkText(input.conferencing.uri)}`
+              : "",
+        },
+      });
+
+      if (moderation.verdict !== "safe") {
+        track(ctx.user, {
+          event: "flagged_content",
+          properties: {
+            action: "create_poll",
+            verdict: moderation.verdict,
+            reason: moderation.reason,
+          },
+        });
+      }
+
+      if (moderation.verdict === "flagged") {
+        return {
+          ok: false as const,
+          error: { code: "INAPPROPRIATE_CONTENT" as const },
+        };
+      }
+
+      const title = input.title;
+      const location = input.location || undefined;
+      const description = input.description || undefined;
+      const pollId = nanoid();
+      const spaceId = activeSpace?.id;
+
+      // The form blocks this client-side; the check here covers a stale form
+      // after the account was disconnected in another tab. Guests can never
+      // hold a connection, so they fail the same way. A pasted link needs
+      // no account.
+      const conferencing = input.conferencing;
+      if (conferencing && conferencing.provider !== "custom") {
+        const connected = ctx.user.isGuest
+          ? []
+          : await getConnectedConferencingProviders(ctx.user.id);
+        if (!connected.includes(conferencing.provider)) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "Conferencing provider is not connected",
+          });
+        }
+      }
+
+      // Date-only (all-day) options are floating: they are stored at UTC
+      // midnight so they never shift across timezones. A falsy poll.timeZone
+      // is the single source of truth for "floating", so date-only polls drop
+      // any timezone the client sent, and date-only options of mixed polls
+      // ignore the poll's timezone.
+      const isTimePoll = input.options.some((option) => option.endDate);
+      const timeZone = isTimePoll ? input.timeZone : null;
+
+      const optionsData = input.options.map((option) => ({
+        startTime:
+          timeZone && option.endDate
+            ? dayjs(option.startDate)
+                .tz(resolveTimeZoneAtWallTime(timeZone, option.startDate), true)
+                .toDate()
+            : dayjs(option.startDate).utc(true).toDate(),
+        duration: option.endDate
+          ? dayjs(option.endDate).diff(dayjs(option.startDate), "minute")
+          : 0,
+      }));
+
+      const kind = isTimePoll ? "time" : "date";
+
+      const poll = await prisma.$transaction(async (tx) => {
+        const poll = await tx.poll.create({
+          include: {
+            options: {
+              select: {
+                id: true,
+              },
+            },
+          },
+          data: {
+            id: pollId,
+            title,
+            timeZone,
+            location,
+            conferencing,
+            description,
+            userId: ctx.user.id,
+            kind,
+            options: {
+              createMany: {
+                data: optionsData,
+              },
+            },
+            hideParticipants: input.hideParticipants,
+            disableComments: input.disableComments,
+            allowTentativeVotes: input.allowTentativeVotes,
+            hideScores: input.hideScores,
+            requireParticipantEmail: input.requireParticipantEmail,
+            spaceId,
+          },
+        });
+
+        await recordPollActivities(tx, [
+          {
+            pollId,
+            type: "poll_created",
+            userId: ctx.user.id,
+            payload: { title },
+          },
+        ]);
+        scheduleWebhookDispatch({ pollId: pollId });
+
+        return poll;
+      });
+
+      const pollLink = absoluteUrl(`/poll/${pollId}`);
+
+      const participantLink = shortUrl(`/invite/${pollId}`);
+
+      if (ctx.user.isGuest === false) {
+        const user = await prisma.user.findUnique({
+          select: { email: true, name: true },
+          where: { id: ctx.user.id },
+        });
+
+        if (user) {
+          after(async () =>
+            sendNewPollEmail({
+              to: user.email,
+              locale: ctx.user.locale ?? undefined,
+              branding: await getInstanceBranding(),
+              props: {
+                title: poll.title,
+                name: user.name,
+                adminLink: pollLink,
+                participantLink,
+              },
+            }),
+          );
+        }
+      }
+
+      identifyGroup({
+        groupType: "poll",
+        groupKey: poll.id,
+        properties: {
+          name: poll.title,
+          status: poll.status,
+          created_at: poll.createdAt,
+          comment_count: 0,
+          option_count: poll.options.length,
+          has_location: !!location,
+          has_description: !!description,
+          timezone: input.timeZone,
+          muted: poll.muted,
+          kind,
+        },
+      });
+
+      track(ctx.user, {
+        event: "poll_create",
+        properties: {
+          title: poll.title,
+          kind,
+          source: "web",
+          optionCount: poll.options.length,
+          hasLocation: !!location,
+          hasConferencing: !!conferencing,
+          conferencingProvider: conferencing?.provider ?? null,
+          hasDescription: !!description,
+          timezone: input.timeZone,
+          disableComments: poll.disableComments,
+          allowTentativeVotes: poll.allowTentativeVotes,
+          hideParticipants: poll.hideParticipants,
+          hideScores: poll.hideScores,
+          requireParticipantEmail: poll.requireParticipantEmail,
+          isGuest: ctx.user.isGuest,
+        },
+        groups: {
+          poll: poll.id,
+          ...(poll.spaceId ? { space: poll.spaceId } : {}),
+        },
+      });
+
+      return { ok: true as const, data: { id: poll.id } };
+    }),
+  modify: possiblyPublicProcedure
+    .input(
+      z.object({
+        pollId: z.string(),
+        title: z.string().trim().optional(),
+        timeZone: timeZoneInput,
+        location: z.string().trim().optional(),
+        // Omitted leaves it unchanged; null removes it.
+        conferencing: pollConferencingSchema.nullable().optional(),
+        description: z
+          .string()
+          .trim()
+          .max(MAX_POLL_DESCRIPTION_LENGTH)
+          .transform(collapseNewlines)
+          .optional(),
+        optionsToDelete: z.string().array().optional(),
+        optionsToAdd: z.string().array().optional(),
+        hideParticipants: z.boolean().optional(),
+        disableComments: z.boolean().optional(),
+        allowTentativeVotes: z.boolean().optional(),
+        hideScores: z.boolean().optional(),
+        requireParticipantEmail: z.boolean().optional(),
+      }),
+    )
+    .use(requireUserMiddleware)
+    .use(createRateLimitMiddleware("update_poll", 10, "1 m"))
+    .mutation(async ({ input, ctx }) => {
+      const pollId = input.pollId;
+
+      if (!(await hasPollAdminAccess(pollId, ctx.user.id))) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have permission to update this poll",
+        });
+      }
+
+      const current = await prisma.poll.findUnique({
+        where: { id: pollId },
+        select: { status: true, userId: true, conferencing: true },
+      });
+
+      if (!current) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      // The booked event holds its own copy of the poll's details, so an edit
+      // after booking would never reach it.
+      if (current.status === "scheduled") {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "A scheduled poll cannot be edited",
+        });
+      }
+
+      // The meeting is minted from the owner's account at booking, whoever
+      // edits. Checked only when the provider changes, so an unrelated edit
+      // still saves after the owner disconnects.
+      const conferencing = input.conferencing;
+      const priorConferencing = parsePollConferencing(current.conferencing, {
+        pollId,
+      });
+      if (
+        conferencing &&
+        conferencing.provider !== "custom" &&
+        conferencing.provider !== priorConferencing?.provider
+      ) {
+        const connected = current.userId
+          ? await getConnectedConferencingProviders(current.userId)
+          : [];
+        if (!connected.includes(conferencing.provider)) {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "Conferencing provider is not connected",
+          });
+        }
+      }
+
+      const moderation = await moderateContent({
+        userId: ctx.user.id,
+        userEmail: ctx.user.email,
+        content: {
+          Title: input.title || "",
+          Description: input.description || "",
+          Location: input.location || "",
+          Conferencing:
+            conferencing?.provider === "custom"
+              ? `${conferencing.label} ${moderatedLinkText(conferencing.uri)}`
+              : "",
+        },
+      });
+
+      if (moderation.verdict !== "safe") {
+        track(ctx.user, {
+          event: "flagged_content",
+          properties: {
+            action: "update_poll",
+            verdict: moderation.verdict,
+            reason: moderation.reason,
+          },
+        });
+      }
+
+      if (moderation.verdict === "flagged") {
+        return {
+          ok: false as const,
+          error: { code: "INAPPROPRIATE_CONTENT" as const },
+        };
+      }
+
+      await prisma.$transaction(async (tx) => {
+        const newOptions =
+          input.optionsToAdd?.map((optionValue) => {
+            const [start, end] = optionValue.split("/");
+
+            if (end) {
+              return {
+                startTime: input.timeZone
+                  ? dayjs(start)
+                      .tz(
+                        resolveTimeZoneAtWallTime(input.timeZone, start),
+                        true,
+                      )
+                      .toDate()
+                  : dayjs(start).utc(true).toDate(),
+                duration: dayjs(end).diff(dayjs(start), "minute"),
+                pollId,
+              };
+            } else {
+              return {
+                startTime: dayjs(start).utc(true).toDate(),
+                duration: 0,
+                pollId,
+              };
+            }
+          }) ?? [];
+
+        // Prior persisted values, read before the update so poll_updated is
+        // recorded only when a detail or setting actually changes (the edit
+        // forms always send some fields, e.g. timeZone on option-only edits).
+        const prior = await tx.poll.findUnique({
+          where: { id: pollId },
+          select: {
+            title: true,
+            location: true,
+            conferencing: true,
+            description: true,
+            timeZone: true,
+            hideParticipants: true,
+            hideScores: true,
+            disableComments: true,
+            allowTentativeVotes: true,
+            requireParticipantEmail: true,
+          },
+        });
+
+        if (!prior) {
+          throw new TRPCError({ code: "NOT_FOUND" });
+        }
+
+        // Turning the tentative option off would strand votes already cast as
+        // "if need be": they stay valid and visible, but their owner could no
+        // longer re-save that response, since the vote type is then rejected.
+        // Locked only in that direction and only when such votes exist, so a
+        // poll whose responses are all yes/no can still be switched, and an
+        // organizer who turned it off can always turn it back on.
+        if (input.allowTentativeVotes === false && prior.allowTentativeVotes) {
+          // Take the same row lock the vote writes take, so a tentative vote
+          // committing concurrently either lands before this count sees it or
+          // waits and then fails its own check. Without the lock, READ
+          // COMMITTED lets one slip in between the count and the update.
+          await tx.$queryRaw`SELECT id FROM polls WHERE id = ${pollId} FOR UPDATE`;
+
+          const tentativeVoteCount = await tx.vote.count({
+            where: { pollId, type: "ifNeedBe" },
+          });
+
+          if (tentativeVoteCount > 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message:
+                "Tentative votes cannot be turned off once participants have used them",
+            });
+          }
+        }
+
+        // Reopen an auto-closed poll when new future dates are added. Manually
+        // closed polls stay closed — that was the organizer's decision. The
+        // transition is conditional so concurrent modifies can't both record
+        // a poll_reopened event.
+        let reopened = false;
+        if (newOptions.some(optionEndsInFuture)) {
+          const { count } = await tx.poll.updateMany({
+            where: { id: pollId, status: "closed", closedReason: "auto" },
+            data: { status: "open", closedReason: null },
+          });
+          reopened = count === 1;
+        }
+
+        // Snapshot before the delete: option_deleted events carry the dates
+        // they removed, since the rows are gone once the activity renders.
+        const deletedOptions =
+          input.optionsToDelete && input.optionsToDelete.length > 0
+            ? await tx.option.findMany({
+                where: {
+                  pollId,
+                  id: {
+                    in: input.optionsToDelete,
+                  },
+                },
+                select: { id: true, startTime: true, duration: true },
+              })
+            : [];
+
+        if (deletedOptions.length > 0) {
+          await tx.option.deleteMany({
+            where: {
+              pollId,
+              id: {
+                in: deletedOptions.map((option) => option.id),
+              },
+            },
+          });
+        }
+
+        const addedOptions =
+          newOptions.length > 0
+            ? await tx.option.createManyAndReturn({
+                data: newOptions,
+                select: { id: true, startTime: true, duration: true },
+              })
+            : [];
+
+        const remainingOptions = await tx.option.count({ where: { pollId } });
+        if (remainingOptions === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "A poll must have at least one option",
+          });
+        }
+
+        const maxDuration = await tx.option.aggregate({
+          where: { pollId },
+          _max: { duration: true },
+        });
+        const kind = (maxDuration._max.duration ?? 0) > 0 ? "time" : "date";
+
+        // Conditional on status so a booking that lands after the check above
+        // rolls this edit back instead of it silently missing the event.
+        const { count: updated } = await tx.poll.updateMany({
+          where: {
+            id: pollId,
+            status: { not: "scheduled" },
+          },
+          data: {
+            title: input.title,
+            location: input.location,
+            conferencing: conferencing === null ? Prisma.DbNull : conferencing,
+            description: input.description,
+            // Date-only polls are floating: keep timeZone null so it stays the
+            // single source of truth for whether options are timezone-bound.
+            timeZone: kind === "time" ? input.timeZone : null,
+            hideScores: input.hideScores,
+            hideParticipants: input.hideParticipants,
+            disableComments: input.disableComments,
+            allowTentativeVotes: input.allowTentativeVotes,
+            requireParticipantEmail: input.requireParticipantEmail,
+            kind,
+          },
+        });
+
+        if (updated === 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A scheduled poll cannot be edited",
+          });
+        }
+
+        // The effective persisted timeZone: forced null for date-only polls,
+        // untouched when the input omits it.
+        const nextTimeZone =
+          kind === "time"
+            ? input.timeZone === undefined
+              ? prior.timeZone
+              : input.timeZone
+            : null;
+
+        // Empty strings and null are the same absent value to the reader, so
+        // normalize before comparing.
+        const detailsOrSettingsChanged =
+          (input.title !== undefined && input.title !== prior.title) ||
+          (input.location !== undefined &&
+            (input.location || null) !== (prior.location || null)) ||
+          (input.description !== undefined &&
+            (input.description || null) !== (prior.description || null)) ||
+          (conferencing !== undefined &&
+            JSON.stringify(conferencing) !==
+              JSON.stringify(
+                parsePollConferencing(prior.conferencing, { pollId }),
+              )) ||
+          nextTimeZone !== prior.timeZone ||
+          (input.hideParticipants !== undefined &&
+            input.hideParticipants !== prior.hideParticipants) ||
+          (input.disableComments !== undefined &&
+            input.disableComments !== prior.disableComments) ||
+          (input.allowTentativeVotes !== undefined &&
+            input.allowTentativeVotes !== prior.allowTentativeVotes) ||
+          (input.hideScores !== undefined &&
+            input.hideScores !== prior.hideScores) ||
+          (input.requireParticipantEmail !== undefined &&
+            input.requireParticipantEmail !== prior.requireParticipantEmail);
+
+        await recordPollActivities(tx, [
+          ...deletedOptions.map((option) => ({
+            pollId,
+            type: "option_deleted" as const,
+            userId: ctx.user.id,
+            optionId: option.id,
+            payload: {
+              start: option.startTime.toISOString(),
+              duration: option.duration,
+            },
+          })),
+          ...addedOptions.map((option) => ({
+            pollId,
+            type: "option_added" as const,
+            userId: ctx.user.id,
+            optionId: option.id,
+            payload: {
+              start: option.startTime.toISOString(),
+              duration: option.duration,
+            },
+          })),
+          ...(detailsOrSettingsChanged
+            ? [
+                {
+                  pollId,
+                  type: "poll_updated" as const,
+                  userId: ctx.user.id,
+                  payload: {},
+                },
+              ]
+            : []),
+          ...(reopened
+            ? [
+                {
+                  pollId,
+                  type: "poll_reopened" as const,
+                  userId: ctx.user.id,
+                  payload: {},
+                },
+              ]
+            : []),
+        ]);
+        scheduleWebhookDispatch({ pollId: pollId });
+      });
+
+      // Get updated poll data for group update
+      const updatedPoll = await prisma.poll.findUnique({
+        where: { id: pollId },
+        select: {
+          title: true,
+          status: true,
+          kind: true,
+          createdAt: true,
+          location: true,
+          description: true,
+          disableComments: true,
+          allowTentativeVotes: true,
+          requireParticipantEmail: true,
+          hideParticipants: true,
+          hideScores: true,
+          timeZone: true,
+          muted: true,
+          _count: {
+            select: {
+              participants: true,
+              comments: true,
+              options: true,
+            },
+          },
+        },
+      });
+
+      if (!updatedPoll) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+        });
+      }
+
+      identifyGroup({
+        groupType: "poll",
+        groupKey: pollId,
+        properties: {
+          name: updatedPoll.title,
+          status: updatedPoll.status,
+          kind: updatedPoll.kind,
+          created_at: updatedPoll.createdAt,
+          comment_count: updatedPoll._count.comments,
+          option_count: updatedPoll._count.options,
+          has_location: !!updatedPoll.location,
+          has_description: !!updatedPoll.description,
+          timezone: updatedPoll.timeZone,
+          muted: updatedPoll.muted,
+        },
+      });
+
+      // Track specific poll update events based on what was changed
+      const hasDetailsUpdate =
+        input.title !== undefined ||
+        input.location !== undefined ||
+        input.description !== undefined;
+      const hasOptionsUpdate =
+        (input.optionsToDelete && input.optionsToDelete.length > 0) ||
+        (input.optionsToAdd && input.optionsToAdd.length > 0);
+      const hasSettingsUpdate =
+        input.timeZone !== undefined ||
+        input.hideParticipants !== undefined ||
+        input.disableComments !== undefined ||
+        input.allowTentativeVotes !== undefined ||
+        input.hideScores !== undefined ||
+        input.requireParticipantEmail !== undefined;
+
+      if (hasDetailsUpdate) {
+        track(ctx.user, {
+          event: "poll_update_details",
+          properties: {
+            title: updatedPoll.title,
+            has_location: !!updatedPoll.location,
+            has_description: !!updatedPoll.description,
+            is_guest: ctx.user.isGuest,
+          },
+          groups: {
+            poll: pollId,
+          },
+        });
+      }
+
+      if (hasOptionsUpdate) {
+        track(ctx.user, {
+          event: "poll_update_options",
+          properties: {
+            option_count: updatedPoll._count.options,
+          },
+          groups: {
+            poll: pollId,
+          },
+        });
+      }
+
+      if (hasSettingsUpdate) {
+        track(ctx.user, {
+          event: "poll_update_settings",
+          properties: {
+            disable_comments: !!updatedPoll.disableComments,
+            allow_tentative_votes: !!updatedPoll.allowTentativeVotes,
+            hide_participants: !!updatedPoll.hideParticipants,
+            hide_scores: !!updatedPoll.hideScores,
+            require_participant_email: !!updatedPoll.requireParticipantEmail,
+          },
+          groups: {
+            poll: pollId,
+          },
+        });
+      }
+
+      return { ok: true as const };
+    }),
+  markAsDeleted: possiblyPublicProcedure
+    .input(
+      z.object({
+        pollId: z.string(),
+      }),
+    )
+    .use(requireUserMiddleware)
+    .mutation(async ({ input: { pollId }, ctx }) => {
+      const hasAccess = await hasPollAdminAccess(pollId, ctx.user.id);
+
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not allowed to mark this poll as deleted",
+        });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Guarded so a repeated delete records one transition, not two.
+        const { count } = await tx.poll.updateMany({
+          where: { id: pollId, deleted: false },
+          data: { deleted: true, deletedAt: new Date() },
+        });
+        if (count === 0) {
+          return;
+        }
+        await recordPollActivities(tx, [
+          {
+            pollId,
+            type: "poll_deleted",
+            userId: ctx.user.id,
+            payload: {},
+          },
+        ]);
+        scheduleWebhookDispatch({ pollId: pollId });
+      });
+
+      // Track poll deletion analytics
+      track(ctx.user, {
+        event: "poll_delete",
+        groups: {
+          poll: pollId,
+        },
+      });
+    }),
+  // END LEGACY ROUTES
+  get: publicProcedure
+    .input(
+      z.object({
+        urlId: z.string(),
+      }),
+    )
+    .query(async ({ input, ctx }) => {
+      const res = await prisma.poll.findUnique({
+        select: {
+          id: true,
+          timeZone: true,
+          title: true,
+          location: true,
+          conferencing: true,
+          description: true,
+          createdAt: true,
+          status: true,
+          closedReason: true,
+          hideParticipants: true,
+          disableComments: true,
+          allowTentativeVotes: true,
+          hideScores: true,
+          requireParticipantEmail: true,
+          options: {
+            select: {
+              id: true,
+              startTime: true,
+              duration: true,
+            },
+            orderBy: {
+              startTime: "asc",
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              banned: true,
+            },
+          },
+          userId: true,
+          deleted: true,
+          spaceId: true,
+          space: {
+            select: {
+              name: true,
+              image: true,
+              tier: true,
+              showBranding: true,
+              hideAttribution: true,
+              primaryColor: true,
+            },
+          },
+          muted: true,
+          scheduledEvent: {
+            select: {
+              id: true,
+              start: true,
+              end: true,
+              allDay: true,
+              status: true,
+            },
+          },
+        },
+        where: {
+          id: input.urlId,
+        },
+      });
+
+      // A deleted poll is treated as if it never existed, for everyone
+      // including its owner and space managers. A banned creator's poll is
+      // hidden the same way: it is usually a scam lure and the page gate is
+      // not the only way to reach this read.
+      if (!res || res.deleted || res.user?.banned) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Poll not found",
+        });
+      }
+      const inviteLink = shortUrl(`/invite/${res.id}`);
+
+      const canManage = ctx.user
+        ? await canUserManagePoll(ctx.user, res)
+        : false;
+
+      const event = res.scheduledEvent
+        ? {
+            id: res.scheduledEvent.id,
+            start: res.scheduledEvent.start,
+            duration: res.scheduledEvent.allDay
+              ? 0
+              : dayjs(res.scheduledEvent.end).diff(
+                  dayjs(res.scheduledEvent.start),
+                  "minute",
+                ),
+            status: res.scheduledEvent.status,
+          }
+        : null;
+
+      const { spaceBrandingAllowed, spaceAttributionConfigurable } =
+        await getInstancePolicy();
+      const brandingActive = res.space
+        ? isSpaceBrandingActive({ ...res.space, spaceBrandingAllowed })
+        : false;
+
+      // `event` above is the shape clients read; the raw row would be a
+      // second copy of the same booking in a public payload.
+      const { scheduledEvent: _scheduledEvent, ...pollFields } = res;
+
+      return {
+        ...pollFields,
+        space: res.space
+          ? {
+              ...res.space,
+              showBranding: brandingActive,
+              primaryColor: brandingActive ? res.space.primaryColor : null,
+              hideAttribution: isSpaceAttributionHidden({
+                ...res.space,
+                spaceAttributionConfigurable,
+              }),
+            }
+          : null,
+        canManage,
+        inviteLink,
+        event,
+      };
+    }),
+  book: proProcedure
+    .input(
+      z.object({
+        pollId: z.string(),
+        optionId: z.string(),
+        notify: z.enum(["none", "all", "attendees"]),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const hasAccess = await hasPollAdminAccess(input.pollId, ctx.user.id);
+
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not allowed to book a date for this poll",
+        });
+      }
+
+      const poll = await prisma.poll.findUnique({
+        where: {
+          id: input.pollId,
+        },
+        select: {
+          id: true,
+          createdAt: true,
+          timeZone: true,
+          title: true,
+          location: true,
+          conferencing: true,
+          status: true,
+          description: true,
+          spaceId: true,
+          hideParticipants: true,
+          space: {
+            select: {
+              tier: true,
+              showBranding: true,
+              hideAttribution: true,
+              primaryColor: true,
+              image: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              locale: true,
+              timeFormat: true,
+            },
+          },
+          participants: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              locale: true,
+              timeZone: true,
+              user: {
+                select: {
+                  email: true,
+                  timeZone: true,
+                },
+              },
+              votes: {
+                select: {
+                  optionId: true,
+                  type: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!poll) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Poll not found",
+        });
+      }
+
+      if (!poll.user) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Poll has no user",
+        });
+      }
+
+      // create event in database
+      const option = await prisma.option.findFirst({
+        where: {
+          id: input.optionId,
+          // Admin access was proven for input.pollId, so the option must
+          // belong to that poll — an unscoped lookup would let an admin
+          // schedule one poll with another poll's option.
+          pollId: input.pollId,
+        },
+        select: {
+          startTime: true,
+          duration: true,
+        },
+      });
+
+      if (!option) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Option not found",
+        });
+      }
+
+      const eventTimes = getScheduledEventTimes({
+        startTime: option.startTime,
+        duration: option.duration,
+        timeZone: poll.timeZone,
+      });
+
+      const { spaceId } = poll;
+
+      if (!spaceId) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Poll has no space",
+        });
+      }
+
+      const eventId = nanoid();
+      const uid = `${eventId}@rallly.co`;
+
+      // A second booking would mint a second meeting and orphan the first
+      // event, so a poll is booked once.
+      if (poll.status === "scheduled") {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Poll is already scheduled",
+        });
+      }
+
+      // The meeting is minted before anything is written: a failed provider
+      // call leaves the poll open so the organizer can fix the connection and
+      // try again, instead of an event going out without a link. The poll
+      // owner's account hosts the meeting, whichever member books it.
+      const conferencing = await mintConferencing({
+        userId: poll.user.id,
+        conferencing: parsePollConferencing(poll.conferencing, {
+          pollId: poll.id,
+        }),
+        title: poll.title,
+        start: eventTimes.start,
+        end: eventTimes.end,
+        timeZone: eventTimes.timeZone,
+      });
+
+      const attendees = poll.participants.filter((p) =>
+        p.votes.some((v) => v.optionId === input.optionId && v.type !== "no"),
+      );
+
+      // The calendar entry carries the join link the same way the event API
+      // does: as the location when there is no place, and in the description.
+      const conferencingUri = conferencing
+        ? getConferencingUri(conferencing)
+        : undefined;
+      const emailConferencing = conferencing
+        ? toEmailConferencing(conferencing)
+        : undefined;
+      const event = createIcsEvent({
+        uid,
+        sequence: 0,
+        title: poll.title,
+        location: poll.location || conferencingUri,
+        description:
+          [poll.description, conferencingUri].filter(Boolean).join("\n\n") ||
+          undefined,
+        start: eventTimes.start,
+        end: eventTimes.end,
+        allDay: eventTimes.allDay,
+        timeZone: eventTimes.timeZone ?? undefined,
+        organizer: {
+          name: poll.user.name,
+          email: poll.user.email,
+        },
+      });
+
+      // A poll can have several participants sharing an email; an event holds at
+      // most one invite per email, so collapse them, keeping the most committal
+      // response (accepted > tentative > declined) so a stale "no" duplicate
+      // can't bury an "accepted".
+      const inviteStatusByVote = {
+        yes: "accepted",
+        ifNeedBe: "tentative",
+        no: "declined",
+      } as const;
+      const inviteStatusRank = { accepted: 0, tentative: 1, declined: 2 };
+      const invitesByEmail = new Map<
+        string,
+        {
+          uid: string;
+          inviteeName: string;
+          inviteeEmail: string;
+          inviteeTimeZone: string | null | undefined;
+          status: (typeof inviteStatusByVote)[keyof typeof inviteStatusByVote];
+        }
+      >();
+      for (const p of poll.participants) {
+        if (!p.email) continue;
+        const status =
+          inviteStatusByVote[
+            p.votes.find((v) => v.optionId === input.optionId)?.type ?? "no"
+          ];
+        const key = p.email.trim().toLowerCase();
+        const existing = invitesByEmail.get(key);
+        if (
+          existing &&
+          inviteStatusRank[existing.status] <= inviteStatusRank[status]
+        ) {
+          continue;
+        }
+        invitesByEmail.set(key, {
+          uid: nanoid(),
+          inviteeName: p.name,
+          inviteeEmail: p.email,
+          inviteeTimeZone: p.user?.timeZone ?? p.timeZone ?? poll.timeZone,
+          status,
+        });
+      }
+      const inviteData = Array.from(invitesByEmail.values());
+
+      const scheduledEvent = await prisma.$transaction(async (tx) => {
+        // create scheduled event
+        const event = await tx.scheduledEvent.create({
+          data: {
+            id: eventId,
+            uid: `${eventId}@rallly.co`,
+            start: eventTimes.start,
+            end: eventTimes.end,
+            title: poll.title,
+            description: poll.description,
+            location: poll.location
+              ? { provider: "custom", address: poll.location }
+              : undefined,
+            conferencing: conferencing ?? undefined,
+            timeZone: eventTimes.timeZone,
+            userId: ctx.user.id,
+            spaceId,
+            allDay: eventTimes.allDay,
+            status: "confirmed",
+            hideAttendees: poll.hideParticipants,
+            invites: {
+              createMany: {
+                data: inviteData,
+              },
+            },
+          },
+        });
+        // update poll status
+        await tx.poll.update({
+          where: {
+            id: poll.id,
+          },
+          data: {
+            status: "scheduled",
+            closedReason: null,
+            scheduledEventId: event.id,
+          },
+        });
+
+        await recordPollActivities(tx, [
+          {
+            pollId: poll.id,
+            type: "poll_scheduled",
+            userId: ctx.user.id,
+            optionId: input.optionId,
+            payload: {
+              start: option.startTime.toISOString(),
+              duration: option.duration,
+            },
+          },
+        ]);
+        scheduleWebhookDispatch({ pollId: poll.id });
+
+        return event;
+      });
+
+      if (event.error) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: event.error.message,
+        });
+      }
+
+      if (!event.value) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to generate ics",
+        });
+      } else {
+        const participantsToEmail: Array<{
+          name: string;
+          email: string;
+          locale: string | undefined;
+          timeZone: string | null;
+        }> = [];
+
+        if (input.notify === "all") {
+          poll.participants.forEach((p) => {
+            if (p.email) {
+              participantsToEmail.push({
+                name: p.name,
+                email: p.email,
+                locale: p.locale ?? undefined,
+                timeZone: p.timeZone,
+              });
+            }
+          });
+        }
+
+        if (input.notify === "attendees") {
+          attendees.forEach((p) => {
+            if (p.email) {
+              participantsToEmail.push({
+                name: p.name,
+                email: p.email,
+                locale: p.locale ?? undefined,
+                timeZone: p.timeZone,
+              });
+            }
+          });
+        }
+
+        const hostEmail = poll.user.email;
+        const hostName = poll.user.name;
+        const hostLocale = poll.user.locale ?? undefined;
+
+        const { date, time } = formatEventDateTime({
+          start: scheduledEvent.start,
+          end: scheduledEvent.end,
+          allDay: scheduledEvent.allDay,
+          timeZone: scheduledEvent.timeZone,
+          locale: hostLocale,
+          timeFormat: poll.user.timeFormat,
+        });
+
+        const space = poll.space;
+        after(async () =>
+          sendFinalizeHostEmail({
+            to: hostEmail,
+            locale: hostLocale,
+            branding: await getInstanceBranding(),
+            icalEvent: {
+              filename: "invite.ics",
+              method: "request",
+              content: event.value,
+            },
+            props: {
+              name: hostName,
+              pollUrl: absoluteUrl(`/poll/${poll.id}`),
+              location: poll.location || undefined,
+              conferencing: emailConferencing,
+              title: poll.title,
+              attendees: poll.participants
+                .filter((p) =>
+                  p.votes.some(
+                    (v) => v.optionId === input.optionId && v.type !== "no",
+                  ),
+                )
+                .map((p) => p.name),
+              date,
+              time,
+            },
+          }),
+        );
+
+        for (const p of participantsToEmail) {
+          const { date, time } = formatEventDateTime({
+            start: scheduledEvent.start,
+            end: scheduledEvent.end,
+            allDay: scheduledEvent.allDay,
+            timeZone: scheduledEvent.timeZone,
+            inviteeTimeZone: p.timeZone,
+            locale: p.locale,
+          });
+          after(async () =>
+            sendFinalizeParticipantEmail({
+              to: p.email,
+              locale: p.locale ?? undefined,
+              branding: space
+                ? await getSpaceBranding(space)
+                : await getInstanceBranding(),
+              icalEvent: {
+                filename: "invite.ics",
+                method: "request",
+                content: event.value,
+              },
+              props: {
+                pollUrl: shortUrl(`/invite/${poll.id}`),
+                title: poll.title,
+                hostName: poll.user?.name ?? "",
+                location: poll.location || undefined,
+                conferencing: emailConferencing,
+                date,
+                time,
+              },
+            }),
+          );
+        }
+
+        track(ctx.user, {
+          event: "poll_schedule",
+          properties: {
+            attendee_count: attendees.length,
+            days_since_created: dayjs().diff(poll.createdAt, "day"),
+            participant_count: poll.participants.length,
+          },
+          groups: {
+            poll: poll.id,
+          },
+        });
+      }
+    }),
+  reopen: privateProcedure
+    .input(
+      z.object({
+        pollId: z.string(),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const hasAccess = await hasPollAdminAccess(input.pollId, ctx.user.id);
+
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not allowed to reopen this poll",
+        });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Conditional transition: only the call that actually flips the
+        // status appends a lifecycle event, so repeated or concurrent calls
+        // can't record a reopen that didn't happen. Scheduling is final: the
+        // booked event has already gone out to attendees.
+        const { count } = await tx.poll.updateMany({
+          where: {
+            id: input.pollId,
+            status: { notIn: ["open", "scheduled"] },
+          },
+          data: {
+            status: "open",
+            closedReason: null,
+          },
+        });
+
+        if (count === 0) {
+          const current = await tx.poll.findUnique({
+            where: { id: input.pollId },
+            select: { status: true },
+          });
+          if (current?.status === "scheduled") {
+            throw new TRPCError({
+              code: "CONFLICT",
+              message: "A scheduled poll cannot be reopened",
+            });
+          }
+          return;
+        }
+
+        const poll = await tx.poll.findUnique({
+          where: {
+            id: input.pollId,
+          },
+          select: { scheduledEventId: true },
+        });
+
+        if (poll?.scheduledEventId) {
+          await tx.scheduledEvent.delete({
+            where: {
+              id: poll.scheduledEventId,
+            },
+          });
+        }
+
+        await recordPollActivities(tx, [
+          {
+            pollId: input.pollId,
+            type: "poll_reopened",
+            userId: ctx.user.id,
+            payload: {},
+          },
+        ]);
+        scheduleWebhookDispatch({ pollId: input.pollId });
+      });
+
+      track(ctx.user, {
+        event: "poll_reopen",
+        groups: {
+          poll: input.pollId,
+        },
+      });
+    }),
+  close: possiblyPublicProcedure
+    .input(
+      z.object({
+        pollId: z.string(),
+      }),
+    )
+    .use(requireUserMiddleware)
+    .mutation(async ({ input, ctx }) => {
+      const hasAccess = await hasPollAdminAccess(input.pollId, ctx.user.id);
+
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not allowed to close this poll",
+        });
+      }
+
+      await prisma.$transaction(async (tx) => {
+        // Conditional transition, matching closePoll in features/poll/
+        // mutations: an already-closed poll keeps its closedReason (so an
+        // auto-close stays "auto"), and only the call that actually flips
+        // the status appends a lifecycle event — repeated or concurrent
+        // calls can't record a close that didn't happen. A scheduled poll is
+        // final; closing it would let reopen delete the booked event.
+        const { count } = await tx.poll.updateMany({
+          where: {
+            id: input.pollId,
+            status: { notIn: ["closed", "scheduled"] },
+          },
+          data: {
+            status: "closed",
+            closedReason: "manual",
+          },
+        });
+
+        if (count === 0) {
+          return;
+        }
+
+        await recordPollActivities(tx, [
+          {
+            pollId: input.pollId,
+            type: "poll_closed",
+            userId: ctx.user.id,
+            payload: { reason: "manual" },
+          },
+        ]);
+        scheduleWebhookDispatch({ pollId: input.pollId });
+      });
+
+      track(ctx.user, {
+        event: "poll_close",
+        groups: {
+          poll: input.pollId,
+        },
+      });
+    }),
+  duplicate: proProcedure
+    .input(
+      z.object({
+        pollId: z.string(),
+        newTitle: z.string().min(1),
+      }),
+    )
+    .mutation(async ({ input, ctx }) => {
+      const hasAccess = await hasPollAdminAccess(input.pollId, ctx.user.id);
+
+      if (!hasAccess) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You are not allowed to duplicate this poll",
+        });
+      }
+
+      const poll = await prisma.poll.findUnique({
+        where: {
+          id: input.pollId,
+        },
+        select: {
+          location: true,
+          description: true,
+          timeZone: true,
+          hideParticipants: true,
+          hideScores: true,
+          requireParticipantEmail: true,
+          disableComments: true,
+          allowTentativeVotes: true,
+          spaceId: true,
+          kind: true,
+          options: {
+            select: {
+              startTime: true,
+              duration: true,
+            },
+          },
+        },
+      });
+
+      if (!poll) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Poll not found" });
+      }
+
+      const newPoll = await prisma.$transaction(async (tx) => {
+        const newPoll = await tx.poll.create({
+          select: {
+            id: true,
+          },
+          data: {
+            id: nanoid(),
+            title: input.newTitle,
+            userId: ctx.user.id,
+            timeZone: poll.timeZone,
+            location: poll.location,
+            spaceId: poll.spaceId,
+            requireParticipantEmail: poll.requireParticipantEmail,
+            description: poll.description,
+            hideParticipants: poll.hideParticipants,
+            hideScores: poll.hideScores,
+            disableComments: poll.disableComments,
+            allowTentativeVotes: poll.allowTentativeVotes,
+            kind: poll.kind,
+            options: {
+              create: poll.options,
+            },
+          },
+        });
+
+        await recordPollActivities(tx, [
+          {
+            pollId: newPoll.id,
+            type: "poll_created",
+            userId: ctx.user.id,
+            payload: { title: input.newTitle },
+          },
+        ]);
+        scheduleWebhookDispatch({ pollId: newPoll.id });
+
+        return newPoll;
+      });
+
+      return newPoll;
+    }),
+});

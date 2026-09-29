@@ -1,45 +1,40 @@
-import { FrownIcon } from "lucide-react";
-import Head from "next/head";
-import Link from "next/link";
-import { useTranslation } from "next-i18next";
-import * as React from "react";
+"use client";
+
+import { buttonVariants } from "@rallly/ui";
+import { FileSearchIcon } from "lucide-react";
+import type * as React from "react";
+import { LinkBase } from "@/i18n/client/link";
+import { useTranslation } from "@/i18n/client/use-translation";
 
 export interface ComponentProps {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: React.ReactNode;
   title: string;
   description: string;
 }
 
 const ErrorPage: React.FunctionComponent<ComponentProps> = ({
-  icon: Icon = FrownIcon,
+  icon,
   title,
   description,
 }) => {
   const { t } = useTranslation();
   return (
-    <div className="flex h-[calc(100vh-100px)] w-full items-center justify-center">
-      <Head>
-        <title>{title}</title>
-      </Head>
+    <div className="inset-0 flex h-full w-full items-center justify-center lg:absolute">
       <div className="space-y-8">
-        <div className="space-y-4 text-center">
-          <Icon className="mb-4 inline-block size-24 text-gray-400" />
-          <div className="text-primary-600 mb-2 text-3xl font-bold ">
-            {title}
-          </div>
+        <div className="space-y-4">
+          {icon || (
+            <FileSearchIcon className="mb-4 inline-block size-24 text-gray-400" />
+          )}
+          <div className="mb-2 font-bold text-3xl text-primary">{title}</div>
           <p className="text-gray-600">{description}</p>
         </div>
-        <div className="flex justify-center space-x-3">
-          <Link href="/" className="btn-primary">
+        <div className="flex space-x-3">
+          <LinkBase href="/" className={buttonVariants({ variant: "primary" })}>
             {t("goToHome")}
-          </Link>
-          <Link
-            href="https://support.rallly.co"
-            passHref={true}
-            className="btn-default"
-          >
+          </LinkBase>
+          <a href="https://support.rallly.co" className={buttonVariants()}>
             {t("support")}
-          </Link>
+          </a>
         </div>
       </div>
     </div>

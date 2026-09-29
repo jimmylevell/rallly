@@ -1,15 +1,16 @@
 import "i18next";
 
-import app from "../public/locales/en/app.json";
+import type emails from "@rallly/emails/locales/emails.json";
 
-interface I18nNamespaces {
-  app: typeof app;
-}
+import type app from "../public/locales/en/app.json";
 
 declare module "i18next" {
   interface CustomTypeOptions {
     defaultNS: "app";
-    resources: I18nNamespaces;
     returnNull: false;
+    resources: {
+      app: typeof app;
+      emails: typeof emails;
+    };
   }
 }

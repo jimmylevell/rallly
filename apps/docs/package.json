@@ -2,7 +2,14 @@
   "name": "@rallly/docs",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "dev": "mint dev",
+    "validate": "mint validate"
+  },
   "devDependencies": {
-    "@rallly/tsconfig": "*"
+    "@rallly/tsconfig": "workspace:*"
+  },
+  "dependencies": {
+    "mint": "^4.2.884"
   }
 }

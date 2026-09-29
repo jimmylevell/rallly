@@ -1,6 +1,6 @@
-import fs from "fs";
+import fs from "node:fs";
+import { join } from "node:path";
 import matter from "gray-matter";
-import { join } from "path";
 
 const postsDirectory = join(process.cwd(), "src", "posts");
 
@@ -11,6 +11,9 @@ export function getPostSlugs() {
 export function getPostBySlug(slug: string, fields: string[] = []) {
   const realSlug = slug.replace(/\.md$/, "");
   const fullPath = join(postsDirectory, `${realSlug}.md`);
+  if (!fs.existsSync(fullPath)) {
+    return null;
+  }
   const fileContents = fs.readFileSync(fullPath, "utf8");
   const { data, content } = matter(fileContents);
 
@@ -41,6 +44,7 @@ export function getAllPosts(fields: string[] = []) {
   const slugs = getPostSlugs();
   const posts = slugs
     .map((slug) => getPostBySlug(slug, fields))
+    .filter((post): post is NonNullable<typeof post> => post !== null)
     // sort posts by date in descending order
     .sort((post1, post2) => (post1.date > post2.date ? -1 : 1));
   return posts;

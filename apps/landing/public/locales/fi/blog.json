@@ -1,5 +1,7 @@
 {
-  "recentPosts": "Viimeisimmät julkaisut",
-  "blogTitle": "Rallly - Blogi",
-  "blogDescription": "Uutisia, päivityksiä ja tiedotteita Ralllysta."
+  "blogDescription": "Uutisia, päivityksiä ja tiedotteita Ralllysta.",
+  "blogFilterAll": "Kaikki",
+  "blogPublishedOn": "Julkaistu",
+  "blogTitle": "Blogi",
+  "blogWrittenBy": "Kirjoittanut"
 }
