@@ -1,60 +1,71 @@
 {
   "name": "rallly",
   "private": true,
-  "version": "3.7.0",
+  "version": "4.15.0",
   "scripts": {
-    "dev": "dotenv -c development -- turbo dev --filter=@rallly/web",
+    "dev": "turbo dev --filter=@rallly/web",
     "dev:emails": "turbo dev --filter=@rallly/emails",
-    "dev:landing": "dotenv -c development turbo dev --filter=@rallly/landing",
-    "start": "dotenv -c -- turbo run start --filter=@rallly/web",
+    "dev:landing": "turbo dev --filter=@rallly/landing",
+    "start": "turbo run start --filter=@rallly/web",
     "build": "dotenv -c -- turbo run build --filter=@rallly/web",
+    "build:web": "NEXT_PUBLIC_APP_VERSION=$(node scripts/inject-version.js) turbo run build --filter=@rallly/web",
+    "build:landing": "turbo run build --filter=@rallly/landing",
     "build:test": "turbo build:test",
     "docs:dev": "turbo dev --filter=@rallly/docs...",
-    "db:deploy": "prisma migrate deploy",
-    "db:generate": "turbo db:generate",
-    "db:migrate": "prisma migrate dev",
-    "db:reset": "prisma migrate reset",
-    "db:up": "docker compose up -d rallly_db && wait-on --timeout 60000 tcp:localhost:5450",
-    "db:seed": "yarn workspace @rallly/database db:seed",
-    "db:down": "docker compose down --volumes --remove-orphans rallly_db",
-    "db:setup": "run-s db:deploy db:generate db:seed",
-    "dx": "run-s db:up db:setup",
-    "test": "turbo build:test && turbo test",
+    "db:deploy": "pnpm --filter @rallly/database exec prisma migrate deploy",
+    "db:generate": "pnpm --filter @rallly/database exec prisma generate",
+    "db:migrate": "pnpm --filter @rallly/database exec prisma migrate dev",
+    "db:reset": "pnpm --filter @rallly/database exec prisma migrate reset",
+    "db:seed": "pnpm --filter @rallly/database exec prisma db seed",
+    "db:push": "pnpm --filter @rallly/database exec prisma db push",
+    "db:format": "pnpm --filter @rallly/database exec prisma format",
+    "proxy:start": "portless proxy start",
+    "proxy:stop": "portless proxy stop",
+    "docker:up": "docker compose -f docker-compose.dev.yml up -d --wait",
+    "docker:pull": "docker compose -f docker-compose.dev.yml pull",
+    "docker:down": "docker compose -f docker-compose.dev.yml down --volumes --remove-orphans",
+    "test:integration": "turbo test:integration",
     "test:unit": "turbo test:unit",
-    "lint": "turbo lint",
+    "check": "biome check .",
+    "check:fix": "biome check . --write",
+    "lint": "oxlint",
+    "check:locales": "node scripts/check-locale-braces.mjs",
+    "check:structure": "node scripts/check-feature-structure.mjs && node scripts/check-feature-cycles.mjs",
+    "check:cascades": "node scripts/check-user-cascade-relations.mjs",
+    "check:openapi": "pnpm --filter @rallly/web openapi:generate && git diff --exit-code -- apps/docs/api-reference/openapi.json",
     "i18n:scan": "turbo i18n:scan",
-    "lint:tsc": "turbo lint:tsc",
-    "prettier": "prettier --write .",
-    "release": "./scripts/create-release.sh"
-  },
-  "prisma": {
-    "seed": "yarn workspace @rallly/database db:seed"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "dependencies": {
-    "@sentry/nextjs": "^7.77.0",
-    "framer-motion": "^10.16.4",
-    "next": "^14.0.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "typescript": "^5.2.2",
-    "zod": "^3.22.3"
+    "type-check": "turbo type-check",
+    "release": "./scripts/create-release.sh",
+    "screenshots": "pnpm --filter @rallly/screenshots capture",
+    "sherif": "pnpx sherif@latest",
+    "sherif:fix": "pnpx sherif@latest --fix",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@types/react": "^18.2.48",
-    "@types/react-dom": "^18.2.18",
-    "dotenv-cli": "^7.1.0",
-    "npm-run-all": "^4.1.5",
-    "prettier": "^3.2.4",
-    "prettier-plugin-tailwindcss": "^0.5.11",
-    "turbo": "^1.10.7",
-    "vitest": "^1.3.1"
+    "@biomejs/biome": "^2.3.11",
+    "@playwright/test": "^1.57.0",
+    "@shadcn/lint": "^0.1.0",
+    "dotenv-cli": "^8.0.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "oxlint": "^1.83.0",
+    "portless": "^0.15.6",
+    "prettier": "^3.5.3",
+    "prisma": "^7.8.0",
+    "turbo": "^2.6.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  },
+  "lint-staged": {
+    "*.{js,ts,jsx,tsx,json,css}": "biome check --write --no-errors-on-unmatched"
   },
   "engines": {
-    "node": ">=18.17.0"
+    "node": "24"
   },
-  "packageManager": "yarn@1.22.19"
+  "pnpm": {
+    "overrides": {
+      "next@16.3.0": "16.3.3"
+    }
+  },
+  "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48"
 }

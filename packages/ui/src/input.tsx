@@ -1,58 +1,30 @@
-import * as React from "react";
-
+import type * as React from "react";
 import { cn } from "./lib/utils";
-import { cva } from "class-variance-authority";
 
-export type InputProps = Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  "size"
-> & {
-  size?: "sm" | "md" | "lg";
-  error?: boolean;
-};
+function Input({
+  className,
+  type,
+  large,
+  ...props
+}: React.ComponentProps<"input"> & { large?: boolean }) {
+  return (
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        "w-full min-w-0 border border-input bg-background/80 outline-none transition-[color,box-shadow] selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-foreground/5",
+        "focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        "aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
+        large
+          ? "h-12 rounded-lg px-3 text-base"
+          : "h-9 rounded-lg px-2.5 py-1 text-sm",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
 
-const inputVariants = cva(
-  cn(
-    "focus:visible:border-primary-400 focus:visible:ring-primary-200 focus:visible:ring-2",
-    "border-input placeholder:text-muted-foreground h-9 rounded border bg-gray-50 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:cursor-not-allowed disabled:opacity-50",
-  ),
-  {
-    variants: {
-      size: {
-        sm: "h-7 text-xs px-1",
-        md: "h-9 text-sm px-2",
-        lg: "h-12 text-lg px-3",
-      },
-      variant: {
-        default: "border-primary-400 focus-visible:border-primary-400",
-        error: "border-rose-400 focus-visible:border-rose-400",
-        ghost: "border-transparent focus-visible:border-primary-400",
-      },
-    },
-    defaultVariants: {
-      size: "md",
-    },
-  },
-);
-
-const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, size, type, error, ...props }, ref) => {
-    return (
-      <input
-        type={type}
-        className={cn(
-          inputVariants({ size }),
-          error
-            ? "focus-visible:border-rose-400  focus-visible:ring-rose-100"
-            : "focus-visible:border-primary-400  focus-visible:ring-primary-100",
-          className,
-        )}
-        ref={ref}
-        {...props}
-      />
-    );
-  },
-);
-Input.displayName = "Input";
+export type InputProps = React.ComponentProps<typeof Input>;
 
 export { Input };

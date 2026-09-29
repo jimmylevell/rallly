@@ -1,61 +1,37 @@
 "use client";
-import { Button } from "@rallly/ui/button";
-import { ArrowUpLeftIcon } from "lucide-react";
-import Head from "next/head";
-import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
-import React from "react";
+import { buttonVariants, cn } from "@rallly/ui";
+import { Alert, AlertAction, AlertDescription } from "@rallly/ui/alert";
+import { ArrowUpRightIcon, CrownIcon } from "lucide-react";
+import { Link } from "@/components/link";
+import { Spinner } from "@/components/spinner";
+import { usePoll } from "@/features/poll/client";
+import { CommentsSheet } from "@/features/poll/components/comments-sheet";
+import { EventCard } from "@/features/poll/components/event-card";
+import { PollFooter } from "@/features/poll/components/poll-footer";
+import { ResponsiveResults } from "@/features/poll/components/responsive-results";
+import {
+  useVotingForm,
+  VotingForm,
+} from "@/features/poll/components/voting-form";
+import { useUser } from "@/features/user/client";
+import { Trans } from "@/i18n/client";
+import { useHydrated } from "@/lib/datetime/use-hydrated";
 
-import { PageHeader } from "@/app/components/page-layout";
-import { Poll } from "@/components/poll";
-import { LegacyPollContextProvider } from "@/components/poll/poll-context-provider";
-import { Trans } from "@/components/trans";
-import { UserDropdown } from "@/components/user-dropdown";
-import { useUser } from "@/components/user-provider";
-import { VisibilityProvider } from "@/components/visibility";
-import { PermissionsContext } from "@/contexts/permissions";
-import { usePoll } from "@/contexts/poll";
-import { trpc } from "@/utils/trpc/client";
-
-import Loader from "./loading";
-
-const Prefetch = ({ children }: React.PropsWithChildren) => {
-  const searchParams = useSearchParams();
-  const token = searchParams?.get("token") as string;
-  const params = useParams<{ urlId: string }>();
-  const urlId = params?.urlId as string;
-  const { data: permission } = trpc.auth.getUserPermission.useQuery(
-    { token },
-    {
-      enabled: !!token,
-    },
-  );
-
-  const { data: poll, error } = trpc.polls.get.useQuery(
-    { urlId },
-    {
-      retry: false,
-    },
-  );
-
-  const { data: participants } = trpc.polls.participants.list.useQuery({
-    pollId: urlId,
-  });
-
-  if (error?.data?.code === "NOT_FOUND") {
-    return <div>Not found</div>;
-  }
-  if (!poll || !participants) {
-    return <Loader />;
-  }
+const FloatingComments = () => {
+  const votingForm = useVotingForm();
+  const isVoting = votingForm.watch("mode") !== "view";
 
   return (
-    <PermissionsContext.Provider value={{ userId: permission?.userId ?? null }}>
-      <Head>
-        <title>{poll.title}</title>
-      </Head>
-      {children}
-    </PermissionsContext.Provider>
+    <div
+      className={cn(
+        "fixed right-4 z-40 m-0 transition-[bottom] duration-300 ease-out lg:right-6 lg:bottom-6",
+        // The mobile poll (below sm) shows a sticky voting footer while a
+        // response is being edited; lift the button clear of it.
+        isVoting ? "bottom-20 sm:bottom-4" : "bottom-4",
+      )}
+    >
+      <CommentsSheet className="rounded-full shadow-lg" />
+    </div>
   );
 };
 
@@ -63,44 +39,80 @@ const GoToApp = () => {
   const poll = usePoll();
   const { user } = useUser();
 
+  if (!user || user.id !== poll.userId) {
+    return null;
+  }
+
   return (
-    <PageHeader variant="ghost">
-      <div className="flex justify-between">
-        <div>
-          <Button
-            variant="ghost"
-            asChild
-            className={poll.userId !== user.id ? "hidden" : ""}
-          >
-            <Link href={`/poll/${poll.id}`}>
-              <ArrowUpLeftIcon className="text-muted-foreground size-4" />
-              <Trans i18nKey="manage" />
-            </Link>
-          </Button>
-        </div>
-        <div>
-          <UserDropdown />
-        </div>
-      </div>
-    </PageHeader>
+    <Alert variant="primary">
+      <CrownIcon />
+      <AlertDescription>
+        <p>
+          <Trans
+            i18nKey="eventHostDescription"
+            defaults="You are the creator of this poll"
+          />
+        </p>
+      </AlertDescription>
+      <AlertAction>
+        <Link
+          className={buttonVariants({ variant: "primary", size: "sm" })}
+          href={`/poll/${poll.id}`}
+          prefetch={false}
+        >
+          <Trans i18nKey="manage" defaults="Manage" />
+          <ArrowUpRightIcon className="size-4" />
+        </Link>
+      </AlertAction>
+    </Alert>
   );
 };
 
-export function InvitePage() {
+/**
+ * The voting grid depends on two things the server cannot know: the
+ * viewer's zone and Intl output for the option dates, and the viewport
+ * breakpoint that picks the desktop or mobile layout. Rather than render the
+ * rest of the page around a placeholder and let the grid shift it, the
+ * whole page waits for hydration behind the same spinner the route streams
+ * while its data loads, so there is one loader from first byte to
+ * interactive. The page's server props are already in the tree by then, so
+ * nothing else is fetched.
+ */
+export function InvitePage({
+  footerLinks,
+}: {
+  footerLinks: { label: string; href: string }[];
+}) {
+  const hydrated = useHydrated();
+
+  if (!hydrated) {
+    return <InvitePageLoading />;
+  }
+
   return (
-    <Prefetch>
-      <LegacyPollContextProvider>
-        <VisibilityProvider>
-          <GoToApp />
-          <div className="p-3 lg:px-6 lg:py-5">
-            <div className="mx-auto max-w-4xl">
-              <div className="-mx-1">
-                <Poll />
-              </div>
-            </div>
-          </div>
-        </VisibilityProvider>
-      </LegacyPollContextProvider>
-    </Prefetch>
+    <div className="page-bg-gray-100 relative h-dvh overflow-auto p-3 lg:p-6 dark:bg-gray-900">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-4xl space-y-3"
+      >
+        <GoToApp />
+        <EventCard />
+        <VotingForm>
+          <ResponsiveResults />
+          <FloatingComments />
+        </VotingForm>
+        <PollFooter footerLinks={footerLinks} />
+        <div className="h-24 lg:hidden" />
+      </main>
+    </div>
+  );
+}
+
+export function InvitePageLoading() {
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <Spinner />
+    </div>
   );
 }

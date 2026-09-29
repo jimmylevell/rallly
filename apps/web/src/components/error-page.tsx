@@ -1,48 +1,89 @@
-import { Button } from "@rallly/ui/button";
-import { FrownIcon } from "lucide-react";
-import Link from "next/link";
-import { useTranslation } from "next-i18next";
-import * as React from "react";
+"use client";
 
-export interface ComponentProps {
-  icon?: React.ComponentType<{ className?: string }>;
-  title: string;
-  description: string;
-}
+import { ChevronRightIcon } from "lucide-react";
+import { Link } from "@/components/link";
 
-const ErrorPage: React.FunctionComponent<ComponentProps> = ({
-  icon: Icon = FrownIcon,
+export function ErrorPage({
+  logo,
+  label,
   title,
   description,
-}) => {
-  const { t } = useTranslation();
+  children,
+  actions,
+  footer,
+}: {
+  logo: React.ReactNode;
+  label: React.ReactNode;
+  title: React.ReactNode;
+  description: React.ReactNode;
+  children: React.ReactNode;
+  actions: React.ReactNode;
+  footer?: React.ReactNode;
+}) {
   return (
-    <div className="flex h-[calc(100vh-100px)] w-full items-center justify-center">
-      <div className="space-y-8">
-        <div className="space-y-4 text-center">
-          <Icon className="mb-4 inline-block size-24 text-gray-400" />
-          <div className="text-primary-600 mb-2 text-3xl font-bold ">
+    <div className="page-bg-gray-100 flex min-h-dvh flex-col">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-7xl flex-1 px-6 pt-10 pb-16 sm:pb-24 lg:px-8"
+      >
+        <header className="flex justify-center">{logo}</header>
+        <div className="mx-auto mt-16 max-w-2xl text-center">
+          <p className="font-semibold text-base/8 text-primary">{label}</p>
+          <h1 className="mt-4 text-balance font-semibold text-3xl text-foreground tracking-tight sm:text-5xl">
             {title}
+          </h1>
+          <p className="mt-6 text-pretty text-muted-foreground text-xl">
+            {description}
+          </p>
+        </div>
+        <div className="mx-auto mt-16 flow-root max-w-lg">
+          <ul className="grid">{children}</ul>
+          <div className="mt-16 flex items-center justify-center gap-x-4">
+            {actions}
           </div>
-          <p className="text-gray-600">{description}</p>
         </div>
-        <div className="flex justify-center space-x-3">
-          <Button variant="primary" asChild>
-            <Link href="/">{t("errors_goToHome")}</Link>
-          </Button>
-          <Button asChild>
-            <Link
-              href="https://support.rallly.co"
-              passHref={true}
-              className="btn-default"
-            >
-              {t("common_support")}
-            </Link>
-          </Button>
-        </div>
-      </div>
+      </main>
+      {footer ? (
+        <footer className="mx-auto w-full max-w-7xl px-6 pb-10 lg:px-8">
+          {footer}
+        </footer>
+      ) : null}
     </div>
   );
-};
+}
 
-export default ErrorPage;
+export function ErrorPageLinkItem({
+  href,
+  icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  title: React.ReactNode;
+  description: React.ReactNode;
+}) {
+  return (
+    <li className="relative flex gap-x-6 rounded-xl p-4 hover:bg-accent">
+      <div className="flex size-12 flex-none items-center justify-center self-center rounded-lg border border-border bg-card shadow-xs">
+        {icon}
+      </div>
+      <div className="flex-auto">
+        <h3 className="font-semibold text-foreground text-sm">
+          <Link href={href}>
+            <span aria-hidden="true" className="absolute inset-0" />
+            {title}
+          </Link>
+        </h3>
+        <p className="mt-0.5 text-muted-foreground text-sm/6">{description}</p>
+      </div>
+      <div className="flex-none self-center">
+        <ChevronRightIcon
+          aria-hidden="true"
+          className="size-4 text-muted-foreground"
+        />
+      </div>
+    </li>
+  );
+}

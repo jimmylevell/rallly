@@ -1,5 +1,7 @@
 {
-  "recentPosts": "Poslední příspěvky",
-  "blogTitle": "Rallly - Blog",
-  "blogDescription": "Novinky, aktualizace a oznámení o Rallly."
+  "blogDescription": "Novinky, aktualizace a oznámení o Rallly.",
+  "blogFilterAll": "Všechny",
+  "blogPublishedOn": "Zveřejněno",
+  "blogTitle": "Blog",
+  "blogWrittenBy": "Napsal/a"
 }

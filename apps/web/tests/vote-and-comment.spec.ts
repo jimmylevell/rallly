@@ -1,37 +1,37 @@
-import { expect, Page, Request, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { captureOne } from "@rallly/test-helpers";
 import { load } from "cheerio";
-import smtpTester, { SmtpTester } from "smtp-tester";
-import { PollPage } from "tests/poll-page";
-
 import { NewPollPage } from "./new-poll-page";
+import type { PollPage } from "./poll-page";
 
 test.describe(() => {
   let page: Page;
   let pollPage: PollPage;
-  let touchRequest: Promise<Request>;
   let editSubmissionUrl: string;
+  let pollId: string;
 
-  let mailServer: SmtpTester;
   test.beforeAll(async ({ browser }) => {
-    mailServer = smtpTester.init(4025);
-    page = await browser.newPage();
-    touchRequest = page.waitForRequest(
-      (request) =>
-        request.method() === "POST" &&
-        request.url().includes("/api/trpc/polls.touch"),
-    );
+    // A context made here does not inherit the config's permissions, and
+    // the copy tests read the clipboard back.
+    const context = await browser.newContext({
+      permissions: ["clipboard-read"],
+    });
+    page = await context.newPage();
+
     const newPollPage = new NewPollPage(page);
     await newPollPage.goto();
-    pollPage = await newPollPage.createPollAndCloseDialog();
-  });
+    pollPage = await newPollPage.create({
+      name: "Monthly Meetup",
+      enableComments: true,
+    });
+    await pollPage.closeShareDialog();
 
-  test.afterAll(async () => {
-    mailServer.stop();
-  });
-
-  test("should call touch endpoint", async () => {
-    // make sure call to touch RPC is made
-    expect(await touchRequest).not.toBeNull();
+    // Extract the poll ID from the URL
+    const url = page.url();
+    const match = url.match(/\/poll\/([a-zA-Z0-9]+)/);
+    pollId = match ? match[1] : "";
+    expect(pollId).not.toBe("");
   });
 
   test("should be able to comment", async () => {
@@ -39,11 +39,16 @@ test.describe(() => {
     const comment = page.locator("data-testid=comment");
     await expect(comment.locator("text='This is a comment!'")).toBeVisible();
     await expect(comment.locator("text=You")).toBeVisible();
+
+    // The comments sheet is modal; close it so later tests can reach the page.
+    const sheet = page.getByRole("dialog", { name: "Comments" });
+    await sheet.getByRole("button", { name: "Close" }).click();
+    await expect(sheet).toBeHidden();
   });
 
   test("copy participant link", async () => {
     const inviteLink = await pollPage.copyInviteLink();
-    await pollPage.closeDialog();
+    await pollPage.closeShareDialog();
     expect(inviteLink).toMatch(/\/invite\/[a-zA-Z0-9]+/);
   });
 
@@ -52,17 +57,13 @@ test.describe(() => {
 
     await invitePage.addParticipant("Anne", "test@example.com");
 
+    const { email } = await captureOne("test@example.com");
+
     await expect(page.locator("text='Anne'")).toBeVisible();
 
-    const { email } = await mailServer.captureOne("test@example.com", {
-      wait: 5000,
-    });
+    expect(email.Subject).toBe("Thanks for responding to Monthly Meetup");
 
-    expect(email.headers.subject).toBe(
-      "Thanks for responding to Monthly Meetup",
-    );
-
-    const $ = load(email.html);
+    const $ = load(email.HTML);
     const href = $("#editSubmissionUrl").attr("href");
 
     if (!href) {
@@ -77,5 +78,17 @@ test.describe(() => {
     await expect(newPage.getByTestId("participant-menu")).toBeVisible({
       timeout: 10000,
     });
+  });
+
+  // The host copies the same link the confirmation email carried, so a
+  // respondent who left no email can still be handed edit access.
+  test("host copies the participant's edit link", async () => {
+    await page.goto(`/poll/${pollId}`);
+    await page.getByTestId("participant-menu").click();
+    await page.getByRole("menuitem", { name: "Copy edit link" }).click();
+    await expect(page.getByText("Edit link for Anne copied")).toBeVisible();
+    expect(await page.evaluate("navigator.clipboard.readText()")).toBe(
+      editSubmissionUrl,
+    );
   });
 });

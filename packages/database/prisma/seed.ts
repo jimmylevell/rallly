@@ -1,156 +1,206 @@
-import { faker } from "@faker-js/faker";
-import { PrismaClient } from "@prisma/client";
-import dayjs from "dayjs";
+import { randomUUID } from "node:crypto";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../generated/prisma/client";
+import {
+  eventTypes,
+  polls,
+  scheduledEvents,
+  spaceMembers,
+  spaces,
+  subscriptions,
+  users,
+} from "./seed/data";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({ adapter });
 
-const randInt = (max = 1, floor = 0) => {
-  return Math.round(Math.random() * max) + floor;
-};
-
-async function createPollsForUser(userId: string) {
-  // Create some polls
-  const polls = await Promise.all(
-    Array.from({ length: 20 }).map(async (_, i) => {
-      // create some polls with no duration (all day) and some with a random duration.
-      const duration = i % 2 === 0 ? 60 * randInt(8, 1) : 0;
-      let cursor = dayjs().add(randInt(30), "day").second(0).minute(0);
-
-      const numberOfOptions = randInt(30, 2);
-
-      const poll = await prisma.poll.create({
-        include: {
-          participants: true,
-          options: true,
-        },
-        data: {
-          id: faker.random.alpha(10),
-          title: `${faker.animal.cat()} meetup - ${faker.date.month()}`,
-          description: faker.lorem.paragraph(),
-          location: faker.address.streetAddress(),
-          deadline: faker.date.future(),
-          user: {
-            connect: {
-              id: userId,
-            },
-          },
-          timeZone: duration !== 0 ? "America/New_York" : undefined,
-          options: {
-            create: Array.from({ length: numberOfOptions }).map(() => {
-              const startTime = cursor.toDate();
-              if (duration !== 0) {
-                cursor = cursor.add(randInt(72, 1), "hour");
-              } else {
-                cursor = cursor.add(randInt(7, 1), "day");
-              }
-              return {
-                startTime,
-                start: startTime,
-                duration,
-              };
-            }),
-          },
-          participants: {
-            create: Array.from({ length: Math.round(Math.random() * 10) }).map(
-              () => ({
-                name: faker.name.fullName(),
-                email: faker.internet.email(),
-              }),
-            ),
-          },
-          adminUrlId: faker.random.alpha(10),
-          participantUrlId: faker.random.alpha(10),
-        },
-      });
-      return poll;
-    }),
-  );
-
-  // Create some votes
-  for (const poll of polls) {
-    for (const participant of poll.participants) {
-      await prisma.vote.createMany({
-        data: poll.options.map((option) => {
-          const randomNumber = randInt(100);
-          const vote =
-            randomNumber > 95 ? "ifNeedBe" : randomNumber > 50 ? "yes" : "no";
-          return {
-            participantId: participant.id,
-            pollId: poll.id,
-            optionId: option.id,
-            type: vote,
-          };
-        }),
-      });
-    }
-  }
-
-  for (const poll of polls) {
-    const commentCount = randInt(3);
-    if (commentCount) {
-      await prisma.comment.createMany({
-        data: Array.from({ length: commentCount }).map(() => ({
-          pollId: poll.id,
-          authorName: faker.name.fullName(),
-          content: faker.lorem.sentence(),
-        })),
-      });
-    }
-  }
+let idCounter = 0;
+function nextId() {
+  return `seed-${(++idCounter).toString().padStart(4, "0")}`;
 }
 
 async function main() {
-  // Create some users
-  const freeUser = await prisma.user.create({
-    data: {
-      name: "Dev User",
-      email: "dev@rallly.co",
-      timeZone: "America/New_York",
-    },
-  });
+  // 1. Users
+  await prisma.user.createMany({ data: users.map((u) => ({ ...u })) });
+  console.info(`✓ ${users.length} users`);
 
-  const proUser = await prisma.user.create({
-    data: {
-      name: "Pro User",
-      email: "dev+pro@rallly.co",
-      customerId: "cus_123",
-      subscription: {
-        create: {
-          id: "sub_123",
-          active: true,
-          priceId: "price_123",
-          periodStart: new Date(),
-          periodEnd: dayjs().add(1, "year").toDate(),
-        },
+  // 2. Spaces
+  await prisma.space.createMany({ data: spaces });
+  console.info(`✓ ${spaces.length} spaces`);
+
+  // 3. Space members
+  await prisma.spaceMember.createMany({ data: spaceMembers });
+  console.info(`✓ ${spaceMembers.length} space members`);
+
+  // 4. Subscriptions
+  await prisma.subscription.createMany({
+    data: subscriptions.map((sub) => ({
+      ...sub,
+      periodStart: new Date(sub.periodStart),
+      periodEnd: new Date(sub.periodEnd),
+    })),
+  });
+  console.info(`✓ ${subscriptions.length} subscriptions`);
+
+  // 5. Scheduled events + invites
+  let inviteCount = 0;
+  for (const evt of scheduledEvents) {
+    const eventId = evt.id ?? nextId();
+    const uid = crypto.randomUUID();
+
+    await prisma.scheduledEvent.create({
+      data: {
+        id: eventId,
+        uid,
+        title: evt.title,
+        description: evt.description,
+        location: evt.location,
+        status: evt.status,
+        timeZone: evt.timeZone,
+        start: new Date(evt.start),
+        end: new Date(evt.end),
+        allDay: evt.allDay,
+        userId: evt.userId,
+        spaceId: evt.spaceId,
       },
-    },
-  });
+    });
 
-  const proUserLegacy = await prisma.user.create({
-    data: {
-      name: "Pro User Legacy",
-      email: "dev+prolegacy@rallly.co",
-    },
-  });
-
-  await prisma.userPaymentData.create({
-    data: {
-      userId: proUserLegacy.id,
-      status: "active",
-      endDate: dayjs().add(1, "year").toDate(),
-      planId: "pro_123",
-      updateUrl: "https://example.com/update",
-      cancelUrl: "https://example.com/cancel",
-      subscriptionId: "sub_123",
-    },
-  });
-
-  await Promise.all(
-    [freeUser, proUser, proUserLegacy].map(async (user) => {
-      await createPollsForUser(user.id);
-      console.info(`✓ Added ${user.email}`);
-    }),
+    if (evt.invites?.length) {
+      await prisma.scheduledEventInvite.createMany({
+        data: evt.invites.map((inv) => {
+          const inviteId = nextId();
+          return {
+            id: inviteId,
+            uid: inviteId,
+            scheduledEventId: eventId,
+            inviteeName: inv.inviteeName,
+            inviteeEmail: inv.inviteeEmail,
+            inviteeTimeZone: inv.inviteeTimeZone,
+            inviteeId: inv.inviteeId,
+            status: inv.status,
+          };
+        }),
+      });
+      inviteCount += evt.invites.length;
+    }
+  }
+  console.info(
+    `✓ ${scheduledEvents.length} scheduled events, ${inviteCount} invites`,
   );
+
+  // 6. Polls + options + participants + votes + comments
+  let optionCount = 0;
+  let participantCount = 0;
+  let voteCount = 0;
+  let commentCount = 0;
+
+  for (const poll of polls) {
+    const pollId = nextId();
+
+    const kind = poll.options.some((opt) => opt.duration > 0) ? "time" : "date";
+
+    await prisma.poll.create({
+      data: {
+        id: pollId,
+        title: poll.title,
+        description: poll.description,
+        location: poll.location,
+        status: poll.status,
+        closedReason: poll.closedReason,
+        timeZone: poll.timeZone,
+        deadline: poll.deadline ? new Date(poll.deadline) : undefined,
+        userId: poll.userId,
+        spaceId: poll.spaceId,
+        scheduledEventId: poll.scheduledEventId,
+        hideParticipants: poll.hideParticipants,
+        hideScores: poll.hideScores,
+        disableComments: poll.disableComments ?? !poll.comments?.length,
+        requireParticipantEmail: poll.requireParticipantEmail,
+        kind,
+      },
+    });
+
+    // Options
+    const optionIds: string[] = [];
+    for (let i = 0; i < poll.options.length; i++) {
+      optionIds.push(nextId());
+    }
+    await prisma.option.createMany({
+      data: poll.options.map((opt, i) => ({
+        id: optionIds[i],
+        pollId,
+        startTime: new Date(opt.startTime),
+        duration: opt.duration,
+      })),
+    });
+    optionCount += poll.options.length;
+
+    // Participants + votes
+    for (const part of poll.participants) {
+      const participantId = nextId();
+      await prisma.participant.create({
+        data: {
+          id: participantId,
+          pollId,
+          name: part.name,
+          email: part.email,
+          note: part.note,
+          userId: part.userId,
+          token: randomUUID().replace(/-/g, ""),
+        },
+      });
+      participantCount++;
+
+      // Votes — one per option
+      await prisma.vote.createMany({
+        data: part.votes.map((voteType, i) => ({
+          id: nextId(),
+          pollId,
+          participantId,
+          optionId: optionIds[i],
+          type: voteType,
+        })),
+      });
+      voteCount += part.votes.length;
+    }
+
+    // Comments
+    if (poll.comments?.length) {
+      await prisma.comment.createMany({
+        data: poll.comments.map((c) => ({
+          id: nextId(),
+          pollId,
+          content: c.content,
+          authorName: c.authorName,
+          userId: c.userId,
+        })),
+      });
+      commentCount += poll.comments.length;
+    }
+  }
+
+  console.info(
+    `✓ ${polls.length} polls, ${optionCount} options, ${participantCount} participants, ${voteCount} votes, ${commentCount} comments`,
+  );
+
+  // 7. Event types
+  const now = Date.now();
+  await prisma.eventType.createMany({
+    data: eventTypes.map((et, i) => ({
+      id: et.id,
+      spaceId: et.spaceId,
+      hostId: et.hostId,
+      name: et.name,
+      duration: et.duration,
+      capacity: et.capacity,
+      description: et.description,
+      location: et.location ?? undefined,
+      updatedAt: new Date(now - i * 60_000),
+    })),
+  });
+  console.info(`✓ ${eventTypes.length} event types`);
 }
 
 main()

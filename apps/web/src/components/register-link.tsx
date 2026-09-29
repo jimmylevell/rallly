@@ -1,6 +1,7 @@
-import Link, { LinkProps } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React from "react";
+import type { LinkProps } from "@/components/link";
+import { Link } from "@/components/link";
 
 export const RegisterLink = React.forwardRef<
   HTMLAnchorElement,
@@ -16,7 +17,7 @@ export const RegisterLink = React.forwardRef<
       onClick={async (e) => {
         e.preventDefault();
         props.onClick?.(e);
-        router.push("/register?callbackUrl=" + encodeURIComponent(pathname));
+        router.push(`/register?redirectTo=${encodeURIComponent(pathname)}`);
       }}
     >
       {children}

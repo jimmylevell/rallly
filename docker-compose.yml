@@ -1,14 +1,14 @@
 services:
   rallly_db:
-    image: postgres:14.2
+    image: postgres:18-alpine
     restart: always
     ports:
       - "5450:5432"
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql
     environment:
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=db
+      - POSTGRES_DB=rallly
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -28,9 +28,10 @@ services:
     ports:
       - 3000:3000
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@rallly_db:5450/db
+      - DATABASE_URL=postgres://postgres:postgres@rallly_db/rallly
     env_file:
-      - .env
+      - path: apps/web/.env
+        required: false
 
 volumes:
   db-data:

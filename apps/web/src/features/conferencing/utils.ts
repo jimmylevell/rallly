@@ -1,0 +1,251 @@
+import * as z from "zod";
+import type { Conferencing, ConferencingProvider } from "./schema";
+
+// Which OAuth integration backs each provider. Google Meet shares the Google
+// OAuth app (and credential row) with Google Calendar; Microsoft Teams shares
+// the Microsoft app with sign in.
+export const conferencingProviderIntegrations: Record<
+  ConferencingProvider,
+  { integrationId: string; oauthProvider: string }
+> = {
+  zoom: { integrationId: "zoom", oauthProvider: "zoom" },
+  meet: { integrationId: "google-meet", oauthProvider: "google" },
+  teams: { integrationId: "microsoft-teams", oauthProvider: "microsoft" },
+};
+
+export function integrationIdToConferencingProvider(
+  integrationId: string,
+): ConferencingProvider | null {
+  for (const [provider, integration] of Object.entries(
+    conferencingProviderIntegrations,
+  )) {
+    if (integration.integrationId === integrationId) {
+      return provider as ConferencingProvider;
+    }
+  }
+  return null;
+}
+
+export const conferencingProviderLabels: Record<ConferencingProvider, string> =
+  {
+    zoom: "Zoom",
+    meet: "Google Meet",
+    teams: "Microsoft Teams",
+  };
+
+export const zoomMeetingResponseSchema = z.object({
+  id: z.number(),
+  join_url: z.url(),
+  password: z.string().optional(),
+});
+
+export function zoomMeetingToConferencing(
+  meeting: z.infer<typeof zoomMeetingResponseSchema>,
+): Conferencing {
+  return {
+    provider: "zoom",
+    uri: meeting.join_url,
+    meetingId: String(meeting.id),
+    password: meeting.password || undefined,
+  };
+}
+
+export const meetSpaceResponseSchema = z.object({
+  meetingUri: z.url(),
+  meetingCode: z.string().optional(),
+});
+
+export function meetSpaceToConferencing(
+  space: z.infer<typeof meetSpaceResponseSchema>,
+): Conferencing {
+  return {
+    provider: "meet",
+    uri: space.meetingUri,
+    meetingId: space.meetingCode,
+  };
+}
+
+export const teamsMeetingResponseSchema = z.object({
+  joinWebUrl: z.url(),
+  joinMeetingIdSettings: z
+    .object({
+      joinMeetingId: z.string().nullish(),
+      passcode: z.string().nullish(),
+    })
+    .nullish(),
+});
+
+export function teamsMeetingToConferencing(
+  meeting: z.infer<typeof teamsMeetingResponseSchema>,
+): Conferencing {
+  return {
+    provider: "teams",
+    uri: meeting.joinWebUrl,
+    meetingId: meeting.joinMeetingIdSettings?.joinMeetingId || undefined,
+    password: meeting.joinMeetingIdSettings?.passcode || undefined,
+  };
+}
+
+// The meeting Rallly creates and deletes to check an account at connect time.
+export const teamsMeetingProbeResponseSchema = z.object({
+  id: z.string().min(1),
+});
+
+// Graph answers a request the account is not entitled to make with a client
+// error: no Teams license, Teams never opened, or a policy that blocks
+// meetings. 401 (token), 408 (timeout) and 429 (throttling) say nothing about
+// the account.
+export function isTeamsMeetingRefusal(status: number) {
+  return (
+    status >= 400 &&
+    status < 500 &&
+    status !== 401 &&
+    status !== 408 &&
+    status !== 429
+  );
+}
+
+// Graph's online meetings API serves work and school accounts only, so a
+// multitenant registration connects Teams through the `organizations`
+// authority, which keeps personal accounts from starting the flow. A single
+// tenant registration keeps its own tenant.
+export function getMicrosoftTeamsAuthority(tenantId: string) {
+  return tenantId === "common" || tenantId === "consumers"
+    ? "organizations"
+    : tenantId;
+}
+
+// Returns the URI suitable for an href / ICS CONFERENCE value.
+// Phone numbers are formatted as `tel:` with DTMF pause + extension if present.
+export function getConferencingUri(conferencing: Conferencing): string {
+  if (conferencing.provider === "phone") {
+    return conferencing.extension
+      ? `tel:${conferencing.number},,${conferencing.extension}`
+      : `tel:${conferencing.number}`;
+  }
+  return conferencing.uri;
+}
+
+// What moderation sees of a pasted link: the origin and path only. A Zoom
+// join link carries the meeting password in its query string.
+export function moderatedLinkText(uri: string | undefined) {
+  if (!uri) {
+    return "";
+  }
+  try {
+    const { origin, pathname } = new URL(uri);
+    return `${origin}${pathname}`;
+  } catch {
+    return uri;
+  }
+}
+
+// How long a captured, correctly signed request stays replayable.
+const ZOOM_WEBHOOK_TOLERANCE_MS = 5 * 60_000;
+
+const encoder = new TextEncoder();
+
+function importHmacKey(secretToken: string) {
+  return crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secretToken),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
+}
+
+function fromHex(hex: string) {
+  if (!/^(?:[0-9a-f]{2})+$/i.test(hex)) {
+    return null;
+  }
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+function toHex(buffer: ArrayBuffer) {
+  return Array.from(new Uint8Array(buffer))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+// Zoom signs every event notification with the app's Secret Token:
+// `v0=` + hex HMAC-SHA256 of `v0:{x-zm-request-timestamp}:{raw body}`, the
+// timestamp in seconds.
+export async function verifyZoomWebhookSignature({
+  secretToken,
+  signature,
+  timestamp,
+  body,
+  now,
+}: {
+  secretToken: string;
+  signature: string | null;
+  timestamp: string | null;
+  body: string;
+  now: Date;
+}): Promise<
+  | { ok: true }
+  | { ok: false; reason: "missing_headers" | "stale" | "invalid_signature" }
+> {
+  if (!signature || !timestamp || !/^\d+$/.test(timestamp)) {
+    return { ok: false, reason: "missing_headers" };
+  }
+  if (
+    Math.abs(now.getTime() - Number(timestamp) * 1000) >
+    ZOOM_WEBHOOK_TOLERANCE_MS
+  ) {
+    return { ok: false, reason: "stale" };
+  }
+  const expected = signature.startsWith("v0=")
+    ? fromHex(signature.slice(3))
+    : null;
+  // `verify` compares in constant time, unlike comparing hex strings.
+  const valid =
+    expected !== null &&
+    (await crypto.subtle.verify(
+      "HMAC",
+      await importHmacKey(secretToken),
+      expected,
+      encoder.encode(`v0:${timestamp}:${body}`),
+    ));
+  return valid ? { ok: true } : { ok: false, reason: "invalid_signature" };
+}
+
+// The answer to the challenge Zoom sends when the endpoint URL is saved.
+export async function createZoomUrlValidationResponse({
+  secretToken,
+  plainToken,
+}: {
+  secretToken: string;
+  plainToken: string;
+}) {
+  const encryptedToken = toHex(
+    await crypto.subtle.sign(
+      "HMAC",
+      await importHmacKey(secretToken),
+      encoder.encode(plainToken),
+    ),
+  );
+  return { plainToken, encryptedToken };
+}
+
+// A comma separated list of addresses, matched case insensitively.
+export function isEmailAllowlisted({
+  email,
+  allowlist,
+}: {
+  email: string | null;
+  allowlist: string;
+}) {
+  if (!email) {
+    return false;
+  }
+  const normalized = email.trim().toLowerCase();
+  return allowlist
+    .split(",")
+    .some((entry) => entry.trim().toLowerCase() === normalized);
+}

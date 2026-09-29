@@ -1,129 +1,89 @@
-import { Badge } from "@rallly/ui/badge";
-import { Button } from "@rallly/ui/button";
-import { preventWidows } from "@rallly/utils";
-import { m } from "framer-motion";
-import { ChevronRightIcon } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
-import * as React from "react";
+import { cn } from "@rallly/ui";
+import { ArrowRightIcon } from "lucide-react";
+import type * as React from "react";
+import { LinkBase } from "@/i18n/client/link";
 
-import { Trans } from "@/components/trans";
-import { linkToApp } from "@/lib/linkToApp";
-
-const Screenshot = () => {
-  const [isLoaded, setIsLoaded] = React.useState(false);
-
+export function HeroAnnouncement({
+  href,
+  badge,
+  children,
+}: {
+  href: string;
+  badge: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
-    <>
-      <m.div
-        transition={{
-          delay: 0.5,
-          type: "spring",
-          duration: 1,
-          bounce: 0.4,
-        }}
-        variants={{
-          hidden: { opacity: 0, y: 0, z: 0 },
-          visible: { opacity: 1, y: -10, z: 0 },
-        }}
-        initial="hidden"
-        animate={isLoaded ? "visible" : "hidden"}
-        style={{
-          backfaceVisibility: "hidden",
-        }}
-        className="shadow-huge relative z-20 mx-auto w-fit max-w-full rounded-full border bg-gray-800 px-3 py-1.5 text-sm text-gray-50 subpixel-antialiased"
-      >
-        <Trans
-          i18nKey="home:createPageLikeThis"
-          defaults="Create a page like this in seconds!"
-        />
-        <span className="absolute left-1/2 top-full z-10 h-8 w-px -translate-x-1/2 bg-gray-800" />
-        <span className="absolute -bottom-12 left-1/2 z-10 inline-block size-3 origin-right -translate-x-1/2 rounded-full bg-gray-800 ring-1 ring-gray-800 ring-offset-2" />
-        <span className="absolute -bottom-12 left-1/2 z-10 inline-block size-3 origin-right -translate-x-1/2 animate-ping rounded-full bg-gray-800 ring-1 ring-gray-800 ring-offset-2" />
-      </m.div>
-      <m.div
-        transition={{
-          type: "spring",
-          duration: 1,
-          bounce: 0.3,
-        }}
-        variants={{
-          hidden: { opacity: 0, scale: 0.95, y: 5 },
-          visible: { opacity: 1, scale: 1, y: 0 },
-        }}
-        initial="hidden"
-        animate={isLoaded ? "visible" : "hidden"}
-        className="shadow-huge mx-auto w-fit overflow-hidden rounded-md border"
-      >
-        <Image
-          src="/static/images/hero-shot.png"
-          alt="Screenshot of Rallly Poll"
-          width={1440}
-          height={1152}
-          quality={100}
-          onLoad={() => {
-            setIsLoaded(true);
-          }}
-        />
-      </m.div>
-    </>
+    <LinkBase
+      href={href}
+      prefetch={false}
+      className="group inline text-pretty text-sm/6"
+    >
+      <span
+        className="mr-2.5 inline-block size-2 rounded-full bg-primary align-[1px]"
+        aria-hidden="true"
+      />
+      <span className="sr-only">{badge} </span>
+      <span className="text-gray-500 transition-colors group-hover:text-gray-800">
+        {children}
+      </span>
+      <ArrowRightIcon
+        className="ml-1.5 inline size-3.5 align-[-2px] text-gray-400 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5"
+        aria-hidden="true"
+      />
+    </LinkBase>
   );
-};
+}
 
-export const MarketingHero = ({
+export function Hero({
   title,
   description,
-  callToAction,
+  announcement,
+  children,
+  className,
+  centered = false,
+  wideDescription = false,
+  descriptionClassName,
 }: {
-  title: string;
-  description: string;
-  callToAction: React.ReactNode;
-}) => {
+  title: React.ReactNode;
+  description: React.ReactNode;
+  announcement?: React.ReactNode;
+  children?: React.ReactNode;
+  className?: string;
+  centered?: boolean;
+  wideDescription?: boolean;
+  descriptionClassName?: string;
+}) {
   return (
-    <div className="mt-8 max-w-full text-center sm:mt-16">
-      <div className="mb-8">
-        <Link
-          locale="en"
-          href="/blog/rallly-3-0-self-hosting"
-          className="hover:ring-primary relative inline-flex items-center gap-x-3 rounded-full border bg-gray-100 py-1 pl-1 pr-4 text-sm leading-6 text-gray-600 shadow-sm hover:bg-gray-50 focus:ring-2 focus:ring-gray-300 focus:ring-offset-1"
+    <div className={cn(centered && "text-center", className)}>
+      {announcement ? (
+        <div
+          className={cn(
+            "mb-6 flex",
+            centered ? "justify-center" : "justify-start",
+          )}
         >
-          <Badge className="bg-green-500">
-            <Trans i18nKey="home:new" defaults="New" />
-          </Badge>
-          <span className="flex items-center gap-x-1">
-            <Trans
-              i18nKey="home:selfHostingBlog"
-              defaults="Rallly 3.0 Self-Hosting"
-            />
-            <ChevronRightIcon className="-mr-1 size-4" aria-hidden="true" />
-          </span>
-        </Link>
-      </div>
-      <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
-        {preventWidows(title)}
-      </h1>
-      <p className="mx-auto max-w-3xl text-lg text-gray-500 sm:text-xl sm:leading-relaxed">
-        {preventWidows(description)}
-      </p>
-      <div className="my-8 flex flex-col items-center justify-center gap-4">
-        <Button
-          size="lg"
-          className="group rounded-full hover:shadow-md active:shadow-sm"
-          variant="primary"
-          asChild
-        >
-          <Link href={linkToApp("/new")}>
-            {callToAction}
-            <ChevronRightIcon className="-ml-1 size-5 transition-transform group-active:translate-x-1" />
-          </Link>
-        </Button>
-        <div className="whitespace-nowrap text-center text-sm font-medium text-gray-500">
-          <Trans i18nKey="home:hint" defaults="It's free! No login required." />
+          {announcement}
         </div>
-      </div>
-      <div className="mt-16">
-        <Screenshot />
-      </div>
+      ) : null}
+      <h1
+        className={cn(
+          "max-w-[700px] text-balance font-medium text-3xl text-gray-800 tracking-tight sm:text-[2.75rem]/none",
+          centered && "mx-auto",
+        )}
+      >
+        {title}
+      </h1>
+      <p
+        className={cn(
+          "mt-4 text-pretty font-normal text-base/6 text-gray-500 sm:text-lg sm:leading-relaxed",
+          wideDescription ? "max-w-[760px]" : "max-w-[620px]",
+          centered && "mx-auto",
+          descriptionClassName,
+        )}
+      >
+        {description}
+      </p>
+      {children ? <div className="mt-6 sm:mt-16">{children}</div> : null}
     </div>
   );
-};
+}

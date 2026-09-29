@@ -1,33 +1,51 @@
 "use client";
 
-import * as SwitchPrimitives from "@radix-ui/react-switch";
+import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 import * as React from "react";
 
 import { cn } from "./lib/utils";
 
-const Switch = React.forwardRef<
-  React.ElementRef<typeof SwitchPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> & {
-    icon?: React.ReactNode;
-  }
->(({ className, ...props }, ref) => (
-  <SwitchPrimitives.Root
-    className={cn(
-      "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-transparent p-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-200",
-      className,
-    )}
-    {...props}
-    ref={ref}
-  >
-    <SwitchPrimitives.Thumb
+function Switch({
+  className,
+  icon,
+  onCheckedChange,
+  ...props
+}: SwitchPrimitive.Root.Props & {
+  icon?: React.ReactNode;
+}) {
+  // The thumb keyframes only run once the user has toggled the switch, so the
+  // "off" bounce does not play on mount for switches that render unchecked.
+  const [interacted, setInteracted] = React.useState(false);
+
+  return (
+    // Rendered as a native <button> (Base UI defaults to a span) so the
+    // switch is a labelable element: with nativeButton, a caller-supplied
+    // `id` lands on it and `<Label htmlFor>` both names and activates it.
+    // Base UI's default reserves the id for the hidden checkbox, which is
+    // excluded from the accessibility tree, leaving the switch nameless.
+    <SwitchPrimitive.Root
+      render={<button type="button" />}
+      nativeButton
+      data-slot="switch"
+      data-interacted={interacted ? "" : undefined}
       className={cn(
-        "pointer-events-none flex h-full w-4 items-center justify-center rounded-full bg-white shadow-lg ring-0 transition-transform duration-100 data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0",
+        "peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full p-[3px] ring-1 ring-button-outline ring-inset focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 data-disabled:cursor-not-allowed data-checked:bg-primary data-unchecked:bg-foreground/10 data-disabled:opacity-50",
+        className,
       )}
+      onCheckedChange={(checked, eventDetails) => {
+        setInteracted(true);
+        onCheckedChange?.(checked, eventDetails);
+      }}
+      {...props}
     >
-      {props.icon}
-    </SwitchPrimitives.Thumb>
-  </SwitchPrimitives.Root>
-));
-Switch.displayName = SwitchPrimitives.Root.displayName;
+      <SwitchPrimitive.Thumb
+        data-slot="switch-thumb"
+        className="pointer-events-none flex h-full w-3.5 items-center justify-center rounded-full border border-black/10 bg-white shadow-sm ring-0 will-change-[translate] [--switch-travel:1rem] data-checked:translate-x-(--switch-travel) data-unchecked:translate-x-0 in-data-interacted:data-checked:animate-switch-thumb-on in-data-interacted:data-unchecked:animate-switch-thumb-off motion-reduce:animate-none"
+      >
+        {icon}
+      </SwitchPrimitive.Thumb>
+    </SwitchPrimitive.Root>
+  );
+}
 
 export { Switch };

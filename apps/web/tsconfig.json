@@ -1,13 +1,19 @@
 {
   "extends": "@rallly/tsconfig/next.json",
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "~/*": ["public/*"],
+      "@/*": ["./src/*"]
     },
-    "strictNullChecks": true,
+    "types": ["vitest/globals"],
+    "target": "ES2017"
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.js", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    "vitest.config.mts"
+  ],
+  "exclude": ["node_modules", ".next/**/*", "playwright-report", "test-results"]
 }

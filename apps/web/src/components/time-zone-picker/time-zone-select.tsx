@@ -1,121 +1,130 @@
-"use client";
-
-import { SelectProps } from "@radix-ui/react-select";
 import { cn } from "@rallly/ui";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@rallly/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@rallly/ui/popover";
-import dayjs from "dayjs";
-import { CheckIcon, ChevronDownIcon, GlobeIcon } from "lucide-react";
-import { useTranslation } from "next-i18next";
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  useComboboxAnchor,
+} from "@rallly/ui/combobox";
+import { InputGroupAddon } from "@rallly/ui/input-group";
+import { GlobeIcon } from "lucide-react";
 import React from "react";
+import {
+  getAllTimezoneIds,
+  getCityFromTimezoneId,
+  getCuratedTimezoneIds,
+  matchesTimezoneQuery,
+} from "@/components/time-zone-picker/timezone-data";
+import { useTranslation } from "@/i18n/client";
+import { Time } from "@/lib/datetime/time";
+import {
+  normalizeLegacyIanaId,
+  toRuntimeCanonicalIanaId,
+} from "@/lib/utils/timezone-schema";
 
-import { Trans } from "@/components/trans";
-import { groupedTimeZones } from "@/utils/grouped-time-zone";
-
-interface TimeZoneCommandProps {
-  value?: string;
-  onSelect?: (value: string) => void;
-}
-
-export const TimeZoneCommand = ({ onSelect, value }: TimeZoneCommandProps) => {
-  const { t } = useTranslation();
-  return (
-    <Command>
-      <CommandInput
-        placeholder={t("timeZoneSelect__inputPlaceholder", {
-          defaultValue: "Search…",
-        })}
-      />
-      <CommandList className="max-h-[300px] w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-content-available-width)] overflow-y-auto">
-        <CommandEmpty>
-          <Trans
-            i18nKey="timeZoneSelect__noOption"
-            defaults="No option found"
-          />
-        </CommandEmpty>
-        {Object.entries(groupedTimeZones).map(([region, timeZones]) => (
-          <CommandGroup heading={region} key={region}>
-            {timeZones.map(({ timezone, city }) => {
-              return (
-                <CommandItem
-                  key={timezone}
-                  onSelect={() => onSelect?.(timezone)}
-                  className="flex min-w-0 gap-x-2.5"
-                >
-                  <CheckIcon
-                    className={cn(
-                      "size-4 shrink-0",
-                      value === timezone ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  <span className="min-w-0 grow truncate">{city}</span>
-                  <span className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                    {dayjs().tz(timezone).format("LT")}
-                  </span>
-                </CommandItem>
-              );
-            })}
-          </CommandGroup>
-        ))}
-      </CommandList>
-    </Command>
-  );
-};
-
-export const TimeZoneSelect = React.forwardRef<HTMLButtonElement, SelectProps>(
-  ({ value, onValueChange, disabled }, ref) => {
-    const [open, setOpen] = React.useState(false);
-    const popoverContentId = "timeZoneSelect__popoverContent";
-
-    return (
-      <Popover modal={false} open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild={true}>
-          <button
-            ref={ref}
-            disabled={disabled}
-            type="button"
-            role="combobox"
-            aria-expanded={open}
-            aria-controls={popoverContentId}
-            className="bg-input-background flex h-9 w-full min-w-0 items-center gap-x-1.5 rounded-md border px-2 py-2 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <GlobeIcon className="size-4" />
-            <span className="grow truncate text-left">
-              {value ? (
-                value.replaceAll("_", " ")
-              ) : (
-                <Trans
-                  i18nKey="timeZoneSelect__defaultValue"
-                  defaults="Select time zone…"
-                />
-              )}
-            </span>
-            <ChevronDownIcon className="ml-2 size-4 shrink-0 opacity-50" />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent
-          id={popoverContentId}
-          align="start"
-          className="z-[1000] max-w-[var(--radix-popover-trigger-width)] bg-white p-0"
-        >
-          <TimeZoneCommand
-            value={value}
-            onSelect={(newValue) => {
-              onValueChange?.(newValue);
-              setOpen(false);
-            }}
-          />
-        </PopoverContent>
-      </Popover>
-    );
-  },
+const allIds = getAllTimezoneIds().sort((a, b) =>
+  getCityFromTimezoneId(a).localeCompare(getCityFromTimezoneId(b)),
 );
 
-TimeZoneSelect.displayName = "TimeZoneSelect";
+const curatedIds = getCuratedTimezoneIds(allIds);
+
+const idByCanonicalForm = new Map(
+  allIds.map((id) => [toRuntimeCanonicalIanaId(id), id]),
+);
+
+/**
+ * Map a stored ID onto the exact item the list renders.
+ *
+ * Values are persisted in the modern spelling (`timezoneSchema` normalizes on
+ * write), while the runtime lists the legacy one. Passing the stored ID
+ * straight through leaves the combobox unable to match any item, so the saved
+ * zone renders unselected. Selecting by canonical form fixes that.
+ */
+function toItemId(value: string) {
+  return idByCanonicalForm.get(toRuntimeCanonicalIanaId(value)) ?? value;
+}
+
+export function TimeZoneSelect({
+  id,
+  value,
+  onValueChange,
+  className,
+  disabled,
+  ...ariaProps
+}: {
+  id?: string;
+  value?: string;
+  onValueChange?: (value: string) => void;
+  className?: string;
+  disabled?: boolean;
+  "aria-labelledby"?: string;
+  "aria-describedby"?: string;
+}) {
+  const { t } = useTranslation();
+
+  const anchorRef = useComboboxAnchor();
+
+  const [isSearching, setIsSearching] = React.useState(false);
+
+  const now = new Date();
+
+  return (
+    <Combobox
+      items={isSearching ? allIds : curatedIds}
+      value={value ? toItemId(value) : null}
+      onValueChange={(id) => {
+        if (id) {
+          // Report the modern spelling regardless of how the runtime spells it,
+          // so callers persist a stable, tzdb-canonical ID.
+          onValueChange?.(normalizeLegacyIanaId(id));
+        }
+      }}
+      onInputValueChange={(inputValue, { reason }) => {
+        if (reason === "input-change") {
+          setIsSearching(inputValue.trim().length > 0);
+        } else {
+          setIsSearching(false);
+        }
+      }}
+      itemToStringLabel={getCityFromTimezoneId}
+      filter={matchesTimezoneQuery}
+      autoHighlight={true}
+    >
+      <div ref={anchorRef} className={cn("min-w-64", className)}>
+        <ComboboxInput
+          id={id}
+          disabled={disabled}
+          placeholder={t("timezoneInputPlaceholder", {
+            defaultValue: "Search time zone…",
+          })}
+          {...ariaProps}
+        >
+          <InputGroupAddon>
+            <GlobeIcon />
+          </InputGroupAddon>
+        </ComboboxInput>
+      </div>
+      <ComboboxContent align="end" anchor={anchorRef.current}>
+        <ComboboxEmpty>
+          {t("timeZoneSelect__noOption", {
+            defaultValue: "No option found",
+          })}
+        </ComboboxEmpty>
+        <ComboboxList>
+          {(entry, index) => (
+            <ComboboxItem key={entry} value={entry} index={index}>
+              <span className="min-w-0 flex-1 truncate">
+                {getCityFromTimezoneId(entry)}
+              </span>
+              <span className="rounded-full px-1 py-0.5 text-center text-muted-foreground text-xs tabular-nums">
+                <Time value={now} preset="time" timeZone={entry} />
+              </span>
+            </ComboboxItem>
+          )}
+        </ComboboxList>
+      </ComboboxContent>
+    </Combobox>
+  );
+}

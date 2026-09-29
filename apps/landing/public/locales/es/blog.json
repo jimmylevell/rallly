@@ -1,5 +1,7 @@
 {
-  "recentPosts": "Posts recientes",
-  "blogTitle": "Rally - Blog",
-  "blogDescription": "Noticias, actualizaciones y anuncios acerca de Rallly."
+  "blogDescription": "Noticias, actualizaciones y anuncios sobre Rallly.",
+  "blogFilterAll": "Todos",
+  "blogPublishedOn": "Publicado el",
+  "blogTitle": "Blog",
+  "blogWrittenBy": "Escrito por"
 }

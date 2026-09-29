@@ -1,93 +1,125 @@
-import { defaultEmailContext, EmailContext } from "./_components/email-context";
-import { EmailLayout } from "./_components/email-layout";
-import { Button, Card, Link, Text } from "./_components/styled-components";
+import { Head, Hr, Html, Img, Preview } from "@react-email/components";
+import { Trans } from "react-i18next/TransWithoutContext";
 
-export interface NewPollEmailProps {
+import { resolveChrome } from "../chrome";
+import { PoweredBy } from "../components/powered-by";
+import { previewChrome } from "../components/preview-chrome";
+import {
+  Body,
+  Button,
+  Container,
+  Heading,
+  Link,
+  Strong,
+  Text,
+} from "../components/styled-components";
+import { createEmailI18n } from "../i18n";
+import type { SendArgs } from "../send";
+import { sendRenderedEmail } from "../send";
+import type { EmailChrome } from "../types";
+
+export type NewPollEmailProps = {
+  locale?: string;
+  chrome: EmailChrome;
   title: string;
   name: string;
   adminLink: string;
   participantLink: string;
-  ctx: EmailContext;
+};
+
+async function NewPollEmail({
+  title,
+  adminLink,
+  participantLink,
+  locale = "en",
+  chrome,
+}: NewPollEmailProps) {
+  const { t, i18n } = await createEmailI18n(locale);
+  return (
+    <Html>
+      <Head />
+      <Preview>
+        {t("newPoll_preview", {
+          defaultValue:
+            "Share your participant link to start collecting responses.",
+        })}
+      </Preview>
+      <Body>
+        <Container>
+          <Img
+            src={chrome.logoUrl}
+            height="42"
+            style={{ marginBottom: 32, borderRadius: 6 }}
+            alt={chrome.appName}
+          />
+          <Heading>
+            {t("newPoll_heading", {
+              defaultValue: "New Poll Created",
+            })}
+          </Heading>
+          <Text>
+            <Trans
+              t={t}
+              i18n={i18n}
+              ns="emails"
+              i18nKey="newPoll_content"
+              values={{ title }}
+              components={{
+                b: <Strong />,
+              }}
+              defaults="Your meeting poll titled <b>{title}</b> is ready! Share it using the link below:"
+            />
+          </Text>
+          <Text>
+            <Link color={chrome.primaryColor} href={participantLink}>
+              {participantLink}
+            </Link>
+          </Text>
+          <Button href={adminLink} color={chrome.primaryColor}>
+            {t("newPoll_button", {
+              defaultValue: "Manage Poll",
+            })}
+          </Button>
+          <Hr style={{ margin: "16px 0" }} />
+          <PoweredBy chrome={chrome} locale={locale} />
+        </Container>
+      </Body>
+    </Html>
+  );
 }
 
-const ShareLink = ({
-  title,
-  participantLink,
-  name,
-  children,
-}: React.PropsWithChildren<{
-  name: string;
-  title: string;
-  participantLink: string;
-}>) => {
-  return (
-    <Link
-      href={`mailto:?subject=${encodeURIComponent(
-        `Availability for ${title}`,
-      )}&body=${encodeURIComponent(
-        `Hi all,\nI'm trying to find the best date for ${title}.\nCan you please use the link below to choose your preferred dates:\n${participantLink}\nThank you.\n${name}`,
-      )}`}
-    >
-      {children}
-    </Link>
-  );
-};
-
-export const NewPollEmail = ({
-  title = "Untitled Poll",
-  name = "John",
-  adminLink = "https://rallly.co/admin/abcdefg123",
-  participantLink = "https://rallly.co/invite/wxyz9876",
-  ctx = defaultEmailContext,
-}: NewPollEmailProps) => {
-  const { baseUrl, domain } = ctx;
-  return (
-    <EmailLayout
-      ctx={ctx}
-      footNote={
-        <>
-          You are receiving this email because a new poll was created with this
-          email address on <Link href={baseUrl}>{domain}</Link>. If this
-          wasn&apos;t you, please ignore this email.
-        </>
-      }
-      recipientName={name}
-      preview="Share your participant link to start collecting responses."
-    >
-      <Text>
-        Your poll has been successfully created! Here are the details:
-      </Text>
-      <Card>
-        <Text>
-          <strong>Title:</strong> {title}
-          <br />
-          <strong>Invite Link:</strong>{" "}
-          <Link href={participantLink}>{participantLink}</Link>
-        </Text>
-        <Text>
-          <ShareLink
-            title={title}
-            name={name}
-            participantLink={participantLink}
-          >
-            Share via email
-          </ShareLink>
-        </Text>
-      </Card>
-      <Text>
-        To invite participants to your poll, simply share the{" "}
-        <strong>Invite Link</strong> above with them. They&apos;ll be able to
-        vote on their preferred meeting times and dates.
-      </Text>
-      <Text>
-        If you need to make any changes to your poll, or if you want to see the
-        results so far, just click on the button below:
-      </Text>
-      <Text>
-        <Button href={adminLink}>Manage Poll &rarr;</Button>
-      </Text>
-    </EmailLayout>
-  );
-};
+NewPollEmail.PreviewProps = {
+  title: "Untitled Poll",
+  name: "John Doe",
+  adminLink: "https://rallly.co",
+  participantLink: "https://rallly.co/invite/abc123",
+  locale: "en",
+  chrome: previewChrome,
+} as NewPollEmailProps;
 
 export default NewPollEmail;
+
+export async function sendNewPollEmail({
+  to,
+  locale = "en",
+  branding,
+  props,
+  ...rest
+}: SendArgs<NewPollEmailProps>) {
+  const { t } = await createEmailI18n(locale);
+  await sendRenderedEmail({
+    to,
+    subject: t("newPoll_subject", {
+      defaultValue: "Let's find a date for {title}!",
+      title: props.title,
+    }),
+    element: (
+      <NewPollEmail
+        {...props}
+        locale={locale}
+        chrome={resolveChrome(branding)}
+      />
+    ),
+    ...rest,
+  });
+}

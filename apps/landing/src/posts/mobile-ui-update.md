@@ -1,6 +1,7 @@
 ---
 title: Mobile Poll UI Refresh
 date: "2022-04-20"
+category: Product
 excerpt: An update focusing on improving the usability of the app on mobile devices.
 ---
 
@@ -10,7 +11,7 @@ Did you know over half of all Rallly users are on mobile devices?
 
 The [first major update](/blog/new-version-announcment) released just two weeks ago addressed quite a few usability
 issues already by introducing dedicated UI components for mobile devices and
-today we're building on top of that to deliver an even better user experience. So what's new?
+today I'm building on top of that to deliver an even better user experience. So what's new?
 
 ## Grouped times
 
@@ -25,15 +26,11 @@ The update includes some sweet animations that are not only delightful but also 
 to the right path.
 The name field and save button were often missed so the animations should help draw attention to them.
 
-<p style="text-align:center">![Device data](/static/images/animations.gif)</p>
+![Device data](/static/images/animations.gif)
 
 ## Increased touch area
 
-<div className="text-center">
-  <div className="inline-block">
-    ![Device data](/static/images/touchable-area.png)
-  </div>
-</div>
+![Device data](/static/images/touchable-area.png)
 
 Previously, you would need to touch the tiny checkbox on the right to toggle a vote. Quite annoying if
 you're on a tiny screen. Well that's not the case anymore. The entire row is now touchable so you don't

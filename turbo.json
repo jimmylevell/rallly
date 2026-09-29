@@ -1,23 +1,15 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDotEnv": [".env"],
-  "pipeline": {
+  "globalDependencies": [".env"],
+  "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "^db:generate"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "build:test": {
       "dependsOn": ["^build"],
       "inputs": ["src/**/*", "!tests/**/*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
-    },
-    "@rallly/web#build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**"]
-    },
-    "@rallly/landing#build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**"]
     },
     "test": {
       "inputs": ["src/**/*", "tests/**/*"],
@@ -27,18 +19,28 @@
     "test:unit": {
       "cache": true
     },
+    "test:integration": {
+      "inputs": ["playwright.config.ts", ".env.test", "src/**/*", "tests/**/*"],
+      "cache": true
+    },
     "db:generate": {
-      "dependsOn": ["^db:generate"]
+      "cache": false
     },
-    "lint": {
-      "outputs": []
+    "db:migrate": {
+      "cache": false
     },
-    "lint:tsc": {
+    "db:deploy": {
+      "cache": false
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"],
       "outputs": []
     },
     "dev": {
-      "dotEnv": [".env.development"],
-      "cache": false
+      "dependsOn": ["^db:generate"],
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["DEV_DOMAIN", "PORTLESS_URL"]
     },
     "start": {
       "cache": false,
@@ -53,68 +55,72 @@
       "persistent": true
     },
     "i18n:scan": {
-      "inputs": ["src/**", "i18next-scanner.config.js"],
-      "outputs": ["public/locales/**"]
+      "cache": false
+    },
+    "//#check": {},
+    "//#check:fix": {
+      "cache": false
     }
   },
   "globalEnv": [
     "ALLOWED_EMAILS",
     "ANALYZE",
-    "API_SECRET",
+    "API_BASE_URL",
     "AWS_ACCESS_KEY_ID",
     "AWS_REGION",
     "AWS_SECRET_ACCESS_KEY",
-    "DISABLE_LANDING_PAGE",
+    "CRON_SECRET",
+    "DATABASE_URL",
+    "DIRECT_DATABASE_URL",
     "EMAIL_PROVIDER",
-    "MAINTENANCE_MODE",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "KV_REST_API_TOKEN",
+    "KV_REST_API_URL",
+    "LICENSE_API_AUTH_TOKEN",
     "MICROSOFT_CLIENT_ID",
     "MICROSOFT_CLIENT_SECRET",
     "MICROSOFT_TENANT_ID",
-    "NEXT_PUBLIC_ABOUT_PAGE_URL",
-    "NEXT_PUBLIC_APP_BASE_URL",
-    "NEXT_PUBLIC_APP_VERSION",
-    "NEXT_PUBLIC_BASE_URL",
-    "NEXT_PUBLIC_BETA",
-    "NEXT_PUBLIC_CRISP_WEBSITE_ID",
-    "NEXT_PUBLIC_ENABLE_ANALYTICS",
-    "NEXT_PUBLIC_ENABLE_FINALIZATION",
-    "NEXT_PUBLIC_LANDING_PAGE_URL",
-    "NEXT_PUBLIC_MAINTENANCE_MODE",
-    "NEXT_PUBLIC_PADDLE_SANDBOX",
-    "NEXT_PUBLIC_PADDLE_VENDOR_ID",
-    "NEXT_PUBLIC_POSTHOG_API_HOST",
-    "NEXT_PUBLIC_POSTHOG_API_KEY",
-    "NEXT_PUBLIC_PRO_PLAN_ID_MONTHLY",
-    "NEXT_PUBLIC_PRO_PLAN_ID_YEARLY",
-    "NEXT_PUBLIC_SELF_HOSTED",
-    "NEXT_PUBLIC_SENTRY_DSN",
-    "NEXT_PUBLIC_SHORT_BASE_URL",
-    "NEXT_PUBLIC_VERCEL_URL",
+    "MODERATION_ENABLED",
+    "NEXT_PUBLIC_*",
+    "NEXT_RUNTIME",
     "NODE_ENV",
-    "NOREPLY_EMAIL",
     "NOREPLY_EMAIL_NAME",
-    "OIDC_NAME",
-    "OIDC_DISCOVERY_URL",
+    "NOREPLY_EMAIL",
     "OIDC_CLIENT_ID",
     "OIDC_CLIENT_SECRET",
-    "GOOGLE_CLIENT_ID",
-    "GOOGLE_CLIENT_SECRET",
-    "PADDLE_PUBLIC_KEY",
+    "OIDC_DISCOVERY_URL",
+    "OIDC_EMAIL_CLAIM_PATH",
+    "OIDC_ISSUER_URL",
+    "OIDC_NAME_CLAIM_PATH",
+    "OIDC_NAME",
+    "OIDC_PICTURE_CLAIM_PATH",
+    "OPENAI_API_KEY",
     "PORT",
+    "RATE_LIMIT_ENABLED",
+    "QUICK_CREATE_ENABLED",
+    "S3_ACCESS_KEY_ID",
+    "S3_BUCKET_NAME",
+    "S3_ENDPOINT",
+    "S3_REGION",
+    "S3_SECRET_ACCESS_KEY",
     "SECRET_PASSWORD",
     "SENTRY_AUTH_TOKEN",
     "SENTRY_DSN",
-    "SENTRY_IGNORE_API_RESOLUTION_ERROR",
+    "SENTRY_ORG",
+    "SENTRY_PROJECT",
+    "SKIP_ENV_VALIDATION",
     "SMTP_HOST",
     "SMTP_PORT",
     "SMTP_PWD",
     "SMTP_SECURE",
     "SMTP_TLS_ENABLED",
     "SMTP_USER",
-    "STRIPE_MONTHLY_PRICE",
     "STRIPE_SECRET_KEY",
     "STRIPE_SIGNING_SECRET",
-    "STRIPE_YEARLY_PRICE",
-    "SUPPORT_EMAIL"
+    "SUPPORT_EMAIL",
+    "VERCEL_BRANCH_URL",
+    "VERCEL_ENV",
+    "VERCEL_URL"
   ]
 }
